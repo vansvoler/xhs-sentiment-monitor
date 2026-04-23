@@ -1,0 +1,119 @@
+<h2>完整设计方案总览</h2>
+<p class="subtitle">基于你的所有选择，以下是完整的 UI/UX 重设计方案</p>
+
+<div class="section">
+  <h3>设计决策汇总</h3>
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;font-family:sans-serif;">
+    <div style="border:1px solid #27272a;border-radius:8px;padding:12px;background:#0d0d0f;">
+      <div style="color:#71717a;font-size:9px;letter-spacing:0.5px;margin-bottom:6px;">风格方向</div>
+      <div style="color:#fafafa;font-size:12px;font-weight:600;">B · 现代极简</div>
+      <div style="color:#52525b;font-size:9px;margin-top:2px;">纯黑底 + 极细边框，类 Linear/Vercel</div>
+    </div>
+    <div style="border:1px solid #27272a;border-radius:8px;padding:12px;background:#0d0d0f;">
+      <div style="color:#71717a;font-size:9px;letter-spacing:0.5px;margin-bottom:6px;">版式密度</div>
+      <div style="color:#fafafa;font-size:12px;font-weight:600;">A · 宽松克制</div>
+      <div style="color:#52525b;font-size:9px;margin-top:2px;">大数字，充足留白，快速扫描</div>
+    </div>
+    <div style="border:1px solid #27272a;border-radius:8px;padding:12px;background:#0d0d0f;">
+      <div style="color:#71717a;font-size:9px;letter-spacing:0.5px;margin-bottom:6px;">颜色系统</div>
+      <div style="color:#1e51a2;font-size:12px;font-weight:600;">品牌蓝强调 + 4语义色</div>
+      <div style="color:#52525b;font-size:9px;margin-top:2px;">#1e51a2 / #22c55e / #f87171 / #52525b</div>
+    </div>
+    <div style="border:1px solid #27272a;border-radius:8px;padding:12px;background:#0d0d0f;">
+      <div style="color:#71717a;font-size:9px;letter-spacing:0.5px;margin-bottom:6px;">核心痛点修复</div>
+      <div style="color:#fafafa;font-size:12px;font-weight:600;">颜色收敛 + 层级清晰</div>
+      <div style="color:#52525b;font-size:9px;margin-top:2px;">移除蓝/橙，颜色只表达语义</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>将要改动的具体内容</h3>
+
+  <div style="font-family:sans-serif;display:flex;flex-direction:column;gap:8px;">
+
+    <div style="border:1px solid #1e3a5f;border-radius:8px;padding:12px;background:#0a1628;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:6px;height:6px;border-radius:50%;background:#1e51a2;"></div>
+        <span style="color:#93bbef;font-size:10px;font-weight:600;">1 · CSS 变量系统重写</span>
+      </div>
+      <div style="color:#64748b;font-size:9px;line-height:1.6;">
+        globals.css 颜色 token 全部替换：移除 --color-accent(蓝)、--color-warning(橙)，新增 --color-brand(#1e51a2)。负面色从 #ef4444 改为柔红 #f87171，降低视觉刺激。
+      </div>
+    </div>
+
+    <div style="border:1px solid #1e3a5f;border-radius:8px;padding:12px;background:#0a1628;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:6px;height:6px;border-radius:50%;background:#1e51a2;"></div>
+        <span style="color:#93bbef;font-size:10px;font-weight:600;">2 · Header 重设计</span>
+      </div>
+      <div style="color:#64748b;font-size:9px;line-height:1.6;">
+        Logo 换品牌蓝渐变底色（#1e51a2→#2563eb），增加副标题「小红书品牌分析」，底部加分隔线，整体更沉稳。
+      </div>
+    </div>
+
+    <div style="border:1px solid #1e3a5f;border-radius:8px;padding:12px;background:#0a1628;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:6px;height:6px;border-radius:50%;background:#1e51a2;"></div>
+        <span style="color:#93bbef;font-size:10px;font-weight:600;">3 · Stats Overview 升级</span>
+      </div>
+      <div style="color:#64748b;font-size:9px;line-height:1.6;">
+        卡片增大内边距(14px)，数字字号从当前放大到 22px + letter-spacing: -1px。数量类 KPI（笔记数、今日新增）用品牌蓝，正面率用绿，预警用柔红。增加环比箭头指示（↑↓）。
+      </div>
+    </div>
+
+    <div style="border:1px solid #1e3a5f;border-radius:8px;padding:12px;background:#0a1628;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:6px;height:6px;border-radius:50%;background:#1e51a2;"></div>
+        <span style="color:#93bbef;font-size:10px;font-weight:600;">4 · 情感色统一</span>
+      </div>
+      <div style="color:#64748b;font-size:9px;line-height:1.6;">
+        SentimentBadge、进度条、图表、HotTopics 全部统一用新的 3 色：#22c55e / #f87171 / #52525b。badge 背景色调整为对应色的 10% 透明度。
+      </div>
+    </div>
+
+    <div style="border:1px solid #1e3a5f;border-radius:8px;padding:12px;background:#0a1628;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:6px;height:6px;border-radius:50%;background:#1e51a2;"></div>
+        <span style="color:#93bbef;font-size:10px;font-weight:600;">5 · CategoryTabs 选中态</span>
+      </div>
+      <div style="color:#64748b;font-size:9px;line-height:1.6;">
+        选中标签从红色改为品牌蓝背景 + 白字，未选中为灰底，视觉层级更清晰。
+      </div>
+    </div>
+
+    <div style="border:1px solid #1e3a5f;border-radius:8px;padding:12px;background:#0a1628;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:6px;height:6px;border-radius:50%;background:#1e51a2;"></div>
+        <span style="color:#93bbef;font-size:10px;font-weight:600;">6 · 卡片圆角 + 间距优化</span>
+      </div>
+      <div style="color:#64748b;font-size:9px;line-height:1.6;">
+        所有卡片圆角从 8px 统一为 10px，组件间距从 16px 提升到 20px，内边距从 12px 提升到 14px。
+      </div>
+    </div>
+
+    <div style="border:1px solid #1e3a5f;border-radius:8px;padding:12px;background:#0a1628;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:6px;height:6px;border-radius:50%;background:#1e51a2;"></div>
+        <span style="color:#93bbef;font-size:10px;font-weight:600;">7 · 图表颜色同步</span>
+      </div>
+      <div style="color:#64748b;font-size:9px;line-height:1.6;">
+        TrendLine / SentimentDonut / CompetitorBar 图表颜色全部切换为新配色方案，移除旧的 #3b82f6(蓝)、#f59e0b(橙)、#ef4444(强红)。
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <h3>不动的部分</h3>
+  <div style="font-family:sans-serif;color:#52525b;font-size:9px;line-height:2;padding:12px;border:1px solid #27272a;border-radius:8px;">
+    ✓ 整体布局结构（网格分区不变）<br>
+    ✓ 所有组件逻辑和数据流<br>
+    ✓ WebSocket 实时推送功能<br>
+    ✓ 骨架屏加载状态<br>
+    ✓ 响应式断点（移动端兼容保留）
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:8px;">这个方案是否符合你的期望？确认后我们进入实现阶段。</p>

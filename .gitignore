@@ -1,0 +1,28 @@
+# Python 编译产物
+__pycache__/
+*.pyc
+*.pyo
+
+# 虚拟环境
+backend/.venv/
+.venv/
+
+# 日志
+backend/logs/
+logs/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# 测试
+.pytest_cache/
+.coverage
+
+# 构建产物
+dist/
+build/
+*.egg-info/

@@ -1,0 +1,166 @@
+<h2>颜色系统：如何收敛</h2>
+<p class="subtitle">当前配色太杂。两种收敛策略，哪个更符合你的品牌感觉？</p>
+
+<div class="split">
+
+  <div class="mockup" data-choice="minimal-color" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="mockup-header">A · 极简双色（推荐）</div>
+    <div class="mockup-body" style="background:#09090b;padding:16px;font-family:sans-serif;">
+      <p style="color:#71717a;font-size:9px;margin:0 0 12px;letter-spacing:0.3px;">原则：只有情感才用颜色，其余全灰</p>
+
+      <!-- 颜色面板展示 -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+        <div style="border:1px solid #27272a;border-radius:8px;padding:10px;text-align:center;">
+          <div style="width:32px;height:32px;background:#fafafa;border-radius:6px;margin:0 auto 6px;"></div>
+          <div style="color:#d4d4d8;font-size:9px;font-weight:500;">主文字</div>
+          <div style="color:#52525b;font-size:8px;">#fafafa</div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:8px;padding:10px;text-align:center;">
+          <div style="width:32px;height:32px;background:#e11d48;border-radius:6px;margin:0 auto 6px;"></div>
+          <div style="color:#d4d4d8;font-size:9px;font-weight:500;">品牌红</div>
+          <div style="color:#52525b;font-size:8px;">Logo only</div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:8px;padding:10px;text-align:center;">
+          <div style="width:32px;height:32px;background:#27272a;border-radius:6px;margin:0 auto 6px;"></div>
+          <div style="color:#d4d4d8;font-size:9px;font-weight:500;">边框/次文字</div>
+          <div style="color:#52525b;font-size:8px;">#27272a</div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:8px;padding:10px;text-align:center;">
+          <div style="width:32px;height:32px;background:#22c55e;border-radius:6px;margin:0 auto 6px;"></div>
+          <div style="color:#d4d4d8;font-size:9px;font-weight:500;">正面情感</div>
+          <div style="color:#52525b;font-size:8px;">唯一暖绿</div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:8px;padding:10px;text-align:center;">
+          <div style="width:32px;height:32px;background:#ef4444;border-radius:6px;margin:0 auto 6px;"></div>
+          <div style="color:#d4d4d8;font-size:9px;font-weight:500;">负面情感</div>
+          <div style="color:#52525b;font-size:8px;">唯一警示红</div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:8px;padding:10px;text-align:center;">
+          <div style="width:32px;height:32px;background:#52525b;border-radius:6px;margin:0 auto 6px;"></div>
+          <div style="color:#d4d4d8;font-size:9px;font-weight:500;">中性情感</div>
+          <div style="color:#52525b;font-size:8px;">灰色即中性</div>
+        </div>
+      </div>
+
+      <!-- 效果预览 -->
+      <div style="border:1px solid #27272a;border-radius:8px;overflow:hidden;">
+        <div style="padding:10px 12px;border-bottom:1px solid #27272a;">
+          <span style="color:#d4d4d8;font-size:10px;font-weight:500;">效果预览</span>
+        </div>
+        <!-- stat card 示例 -->
+        <div style="padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div style="border:1px solid #27272a;border-radius:8px;padding:10px;">
+            <div style="color:#71717a;font-size:8px;margin-bottom:6px;">总笔记</div>
+            <div style="color:#fafafa;font-size:20px;font-weight:700;letter-spacing:-0.5px;">2,412</div>
+            <div style="color:#71717a;font-size:8px;margin-top:3px;">↑ 较昨日 +12.4%</div>
+          </div>
+          <div style="border:1px solid #27272a;border-radius:8px;padding:10px;">
+            <div style="color:#71717a;font-size:8px;margin-bottom:6px;">正面率</div>
+            <div style="color:#22c55e;font-size:20px;font-weight:700;letter-spacing:-0.5px;">68.2%</div>
+            <div style="color:#22c55e;font-size:8px;margin-top:3px;">↑ 3.1%</div>
+          </div>
+        </div>
+        <!-- notes 示例 -->
+        <div style="padding:0 12px 12px;">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#111113;border-radius:6px;margin-bottom:6px;">
+            <div style="width:24px;height:24px;background:#27272a;border-radius:5px;flex-shrink:0;"></div>
+            <div style="flex:1;">
+              <div style="color:#d4d4d8;font-size:9px;margin-bottom:2px;">这款口红真的绝了！显色持久...</div>
+              <span style="background:#052e16;color:#22c55e;font-size:7px;padding:1px 5px;border-radius:3px;">正面 0.92</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#111113;border-radius:6px;">
+            <div style="width:24px;height:24px;background:#27272a;border-radius:5px;flex-shrink:0;"></div>
+            <div style="flex:1;">
+              <div style="color:#d4d4d8;font-size:9px;margin-bottom:2px;">和竞品比价格差不多，质感一般</div>
+              <span style="color:#52525b;font-size:7px;padding:1px 5px;border-radius:3px;background:#27272a;">中性 0.54</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="color:#52525b;font-size:8px;margin:8px 0 0;text-align:center;">蓝色和橙色完全移除 — 眼睛只需要识别绿/红两个信号</p>
+    </div>
+  </div>
+
+  <div class="mockup" data-choice="branded-color" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="mockup-header">B · 品牌强调色保留</div>
+    <div class="mockup-body" style="background:#09090b;padding:16px;font-family:sans-serif;">
+      <p style="color:#71717a;font-size:9px;margin:0 0 12px;letter-spacing:0.3px;">原则：品牌红参与 UI 强调，情感用绿/红/灰</p>
+
+      <!-- 颜色面板展示 -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+        <div style="border:1px solid #27272a;border-radius:8px;padding:10px;text-align:center;">
+          <div style="width:32px;height:32px;background:#fafafa;border-radius:6px;margin:0 auto 6px;"></div>
+          <div style="color:#d4d4d8;font-size:9px;font-weight:500;">主文字</div>
+          <div style="color:#52525b;font-size:8px;">#fafafa</div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:8px;padding:10px;text-align:center;">
+          <div style="width:32px;height:32px;background:#e11d48;border-radius:6px;margin:0 auto 6px;"></div>
+          <div style="color:#d4d4d8;font-size:9px;font-weight:500;">品牌红</div>
+          <div style="color:#52525b;font-size:8px;">Logo + 强调</div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:8px;padding:10px;text-align:center;">
+          <div style="width:32px;height:32px;background:#27272a;border-radius:6px;margin:0 auto 6px;"></div>
+          <div style="color:#d4d4d8;font-size:9px;font-weight:500;">边框/次文字</div>
+          <div style="color:#52525b;font-size:8px;">#27272a</div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:8px;padding:10px;text-align:center;">
+          <div style="width:32px;height:32px;background:#22c55e;border-radius:6px;margin:0 auto 6px;"></div>
+          <div style="color:#d4d4d8;font-size:9px;font-weight:500;">正面情感</div>
+          <div style="color:#52525b;font-size:8px;">绿色</div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:8px;padding:10px;text-align:center;">
+          <div style="width:32px;height:32px;background:#f87171;border-radius:6px;margin:0 auto 6px;"></div>
+          <div style="color:#d4d4d8;font-size:9px;font-weight:500;">负面情感</div>
+          <div style="color:#52525b;font-size:8px;">柔和红（≠品牌红）</div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:8px;padding:10px;text-align:center;">
+          <div style="width:32px;height:32px;background:#52525b;border-radius:6px;margin:0 auto 6px;"></div>
+          <div style="color:#d4d4d8;font-size:9px;font-weight:500;">中性情感</div>
+          <div style="color:#52525b;font-size:8px;">灰色</div>
+        </div>
+      </div>
+
+      <!-- 效果预览 -->
+      <div style="border:1px solid #27272a;border-radius:8px;overflow:hidden;">
+        <div style="padding:10px 12px;border-bottom:1px solid #27272a;">
+          <span style="color:#d4d4d8;font-size:10px;font-weight:500;">效果预览</span>
+        </div>
+        <!-- stat card 示例 -->
+        <div style="padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div style="border:1px solid #27272a;border-radius:8px;padding:10px;">
+            <div style="color:#71717a;font-size:8px;margin-bottom:6px;">总笔记</div>
+            <div style="color:#e11d48;font-size:20px;font-weight:700;letter-spacing:-0.5px;">2,412</div>
+            <div style="color:#71717a;font-size:8px;margin-top:3px;">↑ 较昨日 +12.4%</div>
+          </div>
+          <div style="border:1px solid #27272a;border-radius:8px;padding:10px;">
+            <div style="color:#71717a;font-size:8px;margin-bottom:6px;">正面率</div>
+            <div style="color:#22c55e;font-size:20px;font-weight:700;letter-spacing:-0.5px;">68.2%</div>
+            <div style="color:#22c55e;font-size:8px;margin-top:3px;">↑ 3.1%</div>
+          </div>
+        </div>
+        <!-- notes 示例 -->
+        <div style="padding:0 12px 12px;">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#111113;border-radius:6px;margin-bottom:6px;">
+            <div style="width:24px;height:24px;background:#27272a;border-radius:5px;flex-shrink:0;"></div>
+            <div style="flex:1;">
+              <div style="color:#d4d4d8;font-size:9px;margin-bottom:2px;">这款口红真的绝了！显色持久...</div>
+              <span style="background:#052e16;color:#22c55e;font-size:7px;padding:1px 5px;border-radius:3px;">正面 0.92</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#111113;border-radius:6px;">
+            <div style="width:24px;height:24px;background:#27272a;border-radius:5px;flex-shrink:0;"></div>
+            <div style="flex:1;">
+              <div style="color:#d4d4d8;font-size:9px;margin-bottom:2px;">和竞品比价格差不多，质感一般</div>
+              <span style="color:#52525b;font-size:7px;padding:1px 5px;border-radius:3px;background:#27272a;">中性 0.54</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="color:#52525b;font-size:8px;margin:8px 0 0;text-align:center;">品牌红出现在数字上，有个性但负面红需区分</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px;font-size:11px;">点击选择，或直接告诉我。</p>

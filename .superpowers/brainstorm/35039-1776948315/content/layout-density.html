@@ -1,0 +1,248 @@
+<h2>版式密度</h2>
+<p class="subtitle">同样是 B 风格（纯黑 + 细边框），宽松 vs 紧凑哪个更适合你的使用习惯？</p>
+
+<div class="split">
+
+  <div class="mockup" data-choice="spacious" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="mockup-header">A · 宽松克制（推荐）</div>
+    <div class="mockup-body" style="background:#09090b;padding:20px;font-family:sans-serif;">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;background:linear-gradient(135deg,#e11d48,#be123c);border-radius:7px;display:flex;align-items:center;justify-content:center;">
+            <span style="color:white;font-size:12px;font-weight:700;">X</span>
+          </div>
+          <div>
+            <div style="color:#fafafa;font-size:13px;font-weight:600;">舆情监控</div>
+            <div style="color:#52525b;font-size:10px;">小红书品牌分析</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:6px;height:6px;border-radius:50%;background:#22c55e;"></div>
+          <span style="color:#71717a;font-size:10px;">实时连接</span>
+        </div>
+      </div>
+      <!-- Stats: 4 cards, spacious -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+        <div style="border:1px solid #27272a;border-radius:10px;padding:14px;">
+          <div style="color:#71717a;font-size:9px;letter-spacing:0.5px;margin-bottom:8px;">TOTAL NOTES</div>
+          <div style="color:#fafafa;font-size:22px;font-weight:700;letter-spacing:-1px;margin-bottom:4px;">2,412</div>
+          <div style="color:#22c55e;font-size:9px;">↑ 12.4% 较昨日</div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:10px;padding:14px;">
+          <div style="color:#71717a;font-size:9px;letter-spacing:0.5px;margin-bottom:8px;">今日新增</div>
+          <div style="color:#fafafa;font-size:22px;font-weight:700;letter-spacing:-1px;margin-bottom:4px;">142</div>
+          <div style="color:#22c55e;font-size:9px;">↑ 8 较昨日</div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:10px;padding:14px;">
+          <div style="color:#71717a;font-size:9px;letter-spacing:0.5px;margin-bottom:8px;">正面率</div>
+          <div style="color:#22c55e;font-size:22px;font-weight:700;letter-spacing:-1px;margin-bottom:4px;">68.2%</div>
+          <div style="color:#22c55e;font-size:9px;">↑ 3.1%</div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:10px;padding:14px;">
+          <div style="color:#71717a;font-size:9px;letter-spacing:0.5px;margin-bottom:8px;">负面预警</div>
+          <div style="color:#ef4444;font-size:22px;font-weight:700;letter-spacing:-1px;margin-bottom:4px;">23</div>
+          <div style="color:#71717a;font-size:9px;">需关注</div>
+        </div>
+      </div>
+      <!-- Charts row -->
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-bottom:20px;">
+        <div style="border:1px solid #27272a;border-radius:10px;padding:14px;">
+          <div style="color:#71717a;font-size:9px;margin-bottom:12px;">情感分布</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                <span style="color:#d4d4d8;font-size:9px;">正面</span>
+                <span style="color:#22c55e;font-size:9px;">68%</span>
+              </div>
+              <div style="background:#27272a;border-radius:3px;height:5px;"><div style="width:68%;background:#22c55e;height:100%;border-radius:3px;"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                <span style="color:#d4d4d8;font-size:9px;">负面</span>
+                <span style="color:#ef4444;font-size:9px;">18%</span>
+              </div>
+              <div style="background:#27272a;border-radius:3px;height:5px;"><div style="width:18%;background:#ef4444;height:100%;border-radius:3px;"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                <span style="color:#d4d4d8;font-size:9px;">中性</span>
+                <span style="color:#71717a;font-size:9px;">14%</span>
+              </div>
+              <div style="background:#27272a;border-radius:3px;height:5px;"><div style="width:14%;background:#71717a;height:100%;border-radius:3px;"></div></div>
+            </div>
+          </div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:10px;padding:14px;">
+          <div style="color:#71717a;font-size:9px;margin-bottom:12px;">情感趋势 · 近7天</div>
+          <svg viewBox="0 0 200 50" style="width:100%;height:45px;">
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#22c55e" stop-opacity="0.15"/>
+                <stop offset="100%" stop-color="#22c55e" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="M0,35 L33,28 L66,22 L100,18 L133,20 L166,12 L200,9 L200,50 L0,50Z" fill="url(#g1)"/>
+            <polyline points="0,35 33,28 66,22 100,18 133,20 166,12 200,9" fill="none" stroke="#22c55e" stroke-width="1.5"/>
+            <polyline points="0,42 33,40 66,39 100,37 133,38 166,36 200,34" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="3,2"/>
+          </svg>
+        </div>
+      </div>
+      <!-- Notes table -->
+      <div style="border:1px solid #27272a;border-radius:10px;overflow:hidden;">
+        <div style="padding:12px 14px;border-bottom:1px solid #27272a;display:flex;justify-content:space-between;align-items:center;">
+          <span style="color:#d4d4d8;font-size:10px;font-weight:500;">最新笔记</span>
+          <span style="color:#52525b;font-size:9px;">共 2,412 条</span>
+        </div>
+        <div style="padding:10px 14px;border-bottom:1px solid #18181b;display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;background:#27272a;border-radius:6px;flex-shrink:0;"></div>
+          <div style="flex:1;">
+            <div style="color:#d4d4d8;font-size:9px;margin-bottom:3px;">这款口红真的绝了！显色持久不易脱妆...</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span style="background:#052e16;color:#22c55e;font-size:7px;padding:1px 5px;border-radius:3px;">正面 0.92</span>
+              <span style="color:#3f3f46;font-size:7px;">3分钟前</span>
+              <span style="color:#3f3f46;font-size:7px;">♥ 1.2k</span>
+            </div>
+          </div>
+        </div>
+        <div style="padding:10px 14px;display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;background:#27272a;border-radius:6px;flex-shrink:0;"></div>
+          <div style="flex:1;">
+            <div style="color:#d4d4d8;font-size:9px;margin-bottom:3px;">色号不正，跟图片差太远了，退货...</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span style="background:#450a0a;color:#ef4444;font-size:7px;padding:1px 5px;border-radius:3px;">负面 0.87</span>
+              <span style="color:#3f3f46;font-size:7px;">8分钟前</span>
+              <span style="color:#3f3f46;font-size:7px;">♥ 342</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup" data-choice="compact" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="mockup-header">B · 紧凑信息优先</div>
+    <div class="mockup-body" style="background:#09090b;padding:12px;font-family:sans-serif;">
+      <!-- Header compact -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #27272a;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:20px;height:20px;background:linear-gradient(135deg,#e11d48,#be123c);border-radius:5px;display:flex;align-items:center;justify-content:center;">
+            <span style="color:white;font-size:9px;font-weight:700;">X</span>
+          </div>
+          <span style="color:#fafafa;font-size:11px;font-weight:600;">舆情监控</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div style="width:5px;height:5px;border-radius:50%;background:#22c55e;"></div>
+          <span style="color:#71717a;font-size:9px;">实时</span>
+        </div>
+      </div>
+      <!-- Stats: compact inline row -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;">
+        <div style="border:1px solid #27272a;border-radius:6px;padding:8px 10px;">
+          <div style="color:#71717a;font-size:8px;margin-bottom:3px;">笔记</div>
+          <div style="color:#fafafa;font-size:16px;font-weight:700;">2.4k</div>
+          <div style="color:#22c55e;font-size:8px;">↑12%</div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:6px;padding:8px 10px;">
+          <div style="color:#71717a;font-size:8px;margin-bottom:3px;">今日</div>
+          <div style="color:#fafafa;font-size:16px;font-weight:700;">142</div>
+          <div style="color:#22c55e;font-size:8px;">↑8</div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:6px;padding:8px 10px;">
+          <div style="color:#71717a;font-size:8px;margin-bottom:3px;">正面率</div>
+          <div style="color:#22c55e;font-size:16px;font-weight:700;">68%</div>
+          <div style="color:#22c55e;font-size:8px;">↑3.1%</div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:6px;padding:8px 10px;">
+          <div style="color:#71717a;font-size:8px;margin-bottom:3px;">预警</div>
+          <div style="color:#ef4444;font-size:16px;font-weight:700;">23</div>
+          <div style="color:#71717a;font-size:8px;">待处理</div>
+        </div>
+      </div>
+      <!-- 三列主内容 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+        <div style="border:1px solid #27272a;border-radius:6px;padding:8px;">
+          <div style="color:#71717a;font-size:8px;margin-bottom:6px;">情感分布</div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;align-items:center;gap:4px;">
+              <div style="width:3px;height:3px;border-radius:50%;background:#22c55e;"></div>
+              <div style="flex:1;background:#27272a;border-radius:2px;height:3px;"><div style="width:68%;background:#22c55e;height:100%;border-radius:2px;"></div></div>
+              <span style="color:#71717a;font-size:7px;">68%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <div style="width:3px;height:3px;border-radius:50%;background:#ef4444;"></div>
+              <div style="flex:1;background:#27272a;border-radius:2px;height:3px;"><div style="width:18%;background:#ef4444;height:100%;border-radius:2px;"></div></div>
+              <span style="color:#71717a;font-size:7px;">18%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <div style="width:3px;height:3px;border-radius:50%;background:#52525b;"></div>
+              <div style="flex:1;background:#27272a;border-radius:2px;height:3px;"><div style="width:14%;background:#52525b;height:100%;border-radius:2px;"></div></div>
+              <span style="color:#71717a;font-size:7px;">14%</span>
+            </div>
+          </div>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:6px;padding:8px;">
+          <div style="color:#71717a;font-size:8px;margin-bottom:6px;">趋势</div>
+          <svg viewBox="0 0 80 30" style="width:100%;height:25px;">
+            <polyline points="0,22 13,18 26,14 40,11 53,13 66,7 80,5" fill="none" stroke="#22c55e" stroke-width="1.2"/>
+            <polyline points="0,27 13,26 26,25 40,24 53,25 66,23 80,22" fill="none" stroke="#ef4444" stroke-width="1.2" stroke-dasharray="2,1"/>
+          </svg>
+        </div>
+        <div style="border:1px solid #27272a;border-radius:6px;padding:8px;">
+          <div style="color:#71717a;font-size:8px;margin-bottom:6px;">热词</div>
+          <div style="display:flex;flex-wrap:wrap;gap:3px;">
+            <span style="background:#27272a;color:#d4d4d8;font-size:7px;padding:1px 5px;border-radius:3px;">口红</span>
+            <span style="background:#27272a;color:#d4d4d8;font-size:7px;padding:1px 5px;border-radius:3px;">色号</span>
+            <span style="background:#27272a;color:#d4d4d8;font-size:7px;padding:1px 5px;border-radius:3px;">持妆</span>
+            <span style="background:#27272a;color:#d4d4d8;font-size:7px;padding:1px 5px;border-radius:3px;">显色</span>
+            <span style="background:#27272a;color:#d4d4d8;font-size:7px;padding:1px 5px;border-radius:3px;">正红</span>
+          </div>
+        </div>
+      </div>
+      <!-- Notes compact list -->
+      <div style="border:1px solid #27272a;border-radius:6px;overflow:hidden;">
+        <div style="padding:6px 10px;border-bottom:1px solid #27272a;">
+          <span style="color:#d4d4d8;font-size:9px;font-weight:500;">最新笔记</span>
+        </div>
+        <div style="display:flex;flex-direction:column;">
+          <div style="padding:6px 10px;border-bottom:1px solid #18181b;display:flex;align-items:center;gap:6px;">
+            <div style="width:20px;height:20px;background:#27272a;border-radius:4px;flex-shrink:0;"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="color:#d4d4d8;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">这款口红真的绝了！显色持久不易脱妆...</div>
+              <div style="display:flex;gap:4px;margin-top:2px;">
+                <span style="background:#052e16;color:#22c55e;font-size:6px;padding:1px 3px;border-radius:2px;">正面</span>
+                <span style="color:#3f3f46;font-size:6px;">3m</span>
+              </div>
+            </div>
+            <span style="color:#52525b;font-size:7px;">♥1.2k</span>
+          </div>
+          <div style="padding:6px 10px;border-bottom:1px solid #18181b;display:flex;align-items:center;gap:6px;">
+            <div style="width:20px;height:20px;background:#27272a;border-radius:4px;flex-shrink:0;"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="color:#d4d4d8;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">色号不正，跟图片差太远了，退货...</div>
+              <div style="display:flex;gap:4px;margin-top:2px;">
+                <span style="background:#450a0a;color:#ef4444;font-size:6px;padding:1px 3px;border-radius:2px;">负面</span>
+                <span style="color:#3f3f46;font-size:6px;">8m</span>
+              </div>
+            </div>
+            <span style="color:#52525b;font-size:7px;">♥342</span>
+          </div>
+          <div style="padding:6px 10px;display:flex;align-items:center;gap:6px;">
+            <div style="width:20px;height:20px;background:#27272a;border-radius:4px;flex-shrink:0;"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="color:#d4d4d8;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">和竞品比价格差不多，但质感差一截...</div>
+              <div style="display:flex;gap:4px;margin-top:2px;">
+                <span style="background:#450a0a;color:#ef4444;font-size:6px;padding:1px 3px;border-radius:2px;">负面</span>
+                <span style="color:#3f3f46;font-size:6px;">15m</span>
+              </div>
+            </div>
+            <span style="color:#52525b;font-size:7px;">♥89</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px;font-size:11px;">点击左右任一 mockup 选择，或直接在终端告诉我。</p>
