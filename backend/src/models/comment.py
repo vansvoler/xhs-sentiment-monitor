@@ -2,9 +2,9 @@
 评论数据模型
 """
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from src.models.note import AuthorInfo, SentimentResult
 
@@ -17,10 +17,18 @@ class Comment(BaseModel):
     content: str
     author: AuthorInfo
     likes: int = 0
-    replies: List["Comment"] = []
+    replies: List[Any] = []
     created_at: datetime
     collected_at: datetime = Field(default_factory=datetime.utcnow)
     sentiment: Optional[SentimentResult] = None
+
+    @field_validator("replies", mode="before")
+    @classmethod
+    def drop_non_dict_replies(cls, v: Any) -> List[Any]:
+        # MongoDB 有时将 replies 存为字符串 ID，直接丢弃
+        if not isinstance(v, list):
+            return []
+        return [r for r in v if isinstance(r, dict)]
 
     class Config:
         json_schema_extra = {
