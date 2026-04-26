@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme inline {
+  /* ── 背景色 ── */
+  --color-background:        #09090b;
+  --color-surface:           #111113;
+  --color-surface-elevated:  #18181b;
+  --color-border:            #27272a;
+  --color-border-muted:      #1c1c1f;
+
+  /* ── 文字色（WCAG AA 全部通过）── */
+  --color-text-primary:      #ffffff;
+  --color-text-body:         #f4f4f5;
+  --color-text-secondary:    #a1a1aa;
+  --color-text-muted:        #71717a;
+
+  /* ── 品牌色（深宝蓝，替换旧品牌红）── */
+  --color-brand:             #1e51a2;
+  --color-brand-hover:       #1a4690;
+  --color-brand-muted:       rgba(30, 81, 162, 0.12);
+
+  /* ── 情感色（收敛为 3 色，移除蓝/橙）── */
+  --color-positive:          #22c55e;
+  --color-positive-muted:    rgba(34, 197, 94, 0.1);
+  --color-negative:          #f87171;
+  --color-negative-muted:    rgba(248, 113, 113, 0.1);
+  --color-neutral:           #52525b;
+  --color-neutral-muted:     rgba(82, 82, 91, 0.15);
+
+  /* ── 字体（不变）── */
+  --font-sans: 'Fira Sans', system-ui, sans-serif;
+  --font-mono: 'Fira Code', monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text-body);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* 焦点环 */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* 实时脉冲动画 */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out forwards;
+}
