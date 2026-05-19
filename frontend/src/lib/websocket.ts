@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { WsMessage } from "@/types";
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000/ws";
@@ -12,7 +12,7 @@ export function useWebSocket(onMessage: (msg: WsMessage) => void) {
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
 
-  const connect = useCallback(() => {
+  const connect = useCallback(function connect() {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
     const ws = new WebSocket(WS_URL);
@@ -33,7 +33,9 @@ export function useWebSocket(onMessage: (msg: WsMessage) => void) {
     ws.onclose = () => {
       setStatus("disconnected");
       // 5 秒后重连
-      reconnectTimer.current = setTimeout(connect, 5000);
+      reconnectTimer.current = setTimeout(() => {
+        connect();
+      }, 5000);
     };
 
     ws.onerror = () => ws.close();
@@ -42,7 +44,9 @@ export function useWebSocket(onMessage: (msg: WsMessage) => void) {
   useEffect(() => {
     connect();
     return () => {
-      reconnectTimer.current && clearTimeout(reconnectTimer.current);
+      if (reconnectTimer.current) {
+        clearTimeout(reconnectTimer.current);
+      }
       wsRef.current?.close();
     };
   }, [connect]);
