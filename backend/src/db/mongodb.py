@@ -48,6 +48,15 @@ class MongoDB:
         await comments.create_index("note_id")
         await comments.create_index("collected_at")
 
+        # intel_items 统一运营情报
+        intel_items = self.db["intel_items"]
+        await intel_items.create_index("item_id", unique=True)
+        await intel_items.create_index([("source_type", 1), ("published_at", -1)])
+        await intel_items.create_index(
+            [("source_type", 1), ("source_group", 1), ("published_at", -1)]
+        )
+        await intel_items.create_index([("school_name", 1), ("published_at", -1)])
+
     async def disconnect(self) -> None:
         """关闭连接"""
         if self.client is not None:
