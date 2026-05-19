@@ -3,6 +3,7 @@
 """
 from collections import Counter
 from collections.abc import Iterable
+from pathlib import Path
 
 from src.models.intel import (
     IntelHelperRail,
@@ -10,6 +11,7 @@ from src.models.intel import (
     IntelOverviewSection,
     IntelSourceType,
 )
+from src.services.intel_seed import load_seed_items
 
 SOURCE_LABELS = {
     IntelSourceType.XIAOHONGSHU: "小红书",
@@ -54,3 +56,15 @@ def build_helper_rail(items: Iterable[IntelItem]) -> IntelHelperRail:
         highlight_count=min(3, len(item_list)),
         top_counts=dict(counter.most_common(5)),
     )
+
+
+def load_fixture_items(seed_path: Path) -> list[IntelItem]:
+    """读取演示数据，供前端纵向切片开发使用"""
+
+    return load_seed_items(seed_path)
+
+
+def build_source_feed(items: Iterable[IntelItem], source_key: str) -> list[IntelItem]:
+    """按来源筛出详情页数据"""
+
+    return [item for item in items if item.source_type.value == source_key]

@@ -9,7 +9,7 @@ import uvicorn
 from src.config import settings
 from src.db.mongodb import init_mongodb, close_mongodb
 from src.websocket.manager import websocket_manager
-from src.api import notes, comments, sentiment, trends, competitors, config
+from src.api import notes, comments, sentiment, trends, competitors, config, intel
 from src.collectors.scheduler import start_scheduler, stop_scheduler
 
 
@@ -64,6 +64,7 @@ app.include_router(sentiment.router, prefix="/api/sentiment", tags=["情感分�
 app.include_router(trends.router, prefix="/api/trends", tags=["趋势分析"])
 app.include_router(competitors.router, prefix="/api/competitors", tags=["竞品分析"])
 app.include_router(config.router, prefix="/api/config", tags=["配置"])
+app.include_router(intel.router, prefix="/api/intel", tags=["运营情报"])
 
 
 @app.get("/")
