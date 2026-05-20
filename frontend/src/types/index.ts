@@ -124,3 +124,5 @@ export interface KeywordConfig {
 }
 
 export type SentimentFilter = "all" | "positive" | "negative" | "neutral";
+
+export * from "./intel";
