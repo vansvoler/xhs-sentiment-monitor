@@ -92,7 +92,7 @@ APScheduler (collectors/scheduler.py)
 
 ```bash
 # 开发启动（端口 3000）
-cd frontend && npm run dev
+cd frontend && bash scripts/dev.sh
 
 # 生产构建
 cd frontend && npm run build
@@ -103,16 +103,21 @@ cd frontend && npm run build
 ```
 frontend/src/
   app/
-    dashboard/page.tsx   — 主 Dashboard（Client Component）
+    dashboard/page.tsx          — 新运营情报工作台（Client Component）
+    dashboard/legacy/page.tsx   — 旧小红书舆情页
   components/
     dashboard/           — header, stats-overview, notes-table, hot-topics, realtime-feed
+    operations-dashboard/ — 新运营工作台组件
     charts/              — sentiment-donut, trend-line, competitor-bar（Recharts）
     ui/                  — card, badge, skeleton
   lib/
     api.ts               — fetch 封装，读 NEXT_PUBLIC_API_URL
+    intel-api.ts         — 运营情报 fetch 封装
     websocket.ts         — useWebSocket hook，读 NEXT_PUBLIC_WS_URL，自动重连
     utils.ts             — 日期/数字格式化，SENTIMENT_CONFIG
-  types/index.ts         — 与后端模型对齐的 TS 类型
+  types/
+    index.ts             — 统一导出
+    intel.ts             — 运营情报类型
 ```
 
 前端环境变量在 `frontend/.env.local`：`NEXT_PUBLIC_API_URL` / `NEXT_PUBLIC_WS_URL`。

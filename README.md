@@ -1,6 +1,10 @@
-# 小红书舆情监控系统
+# 小红书与留学运营情报工作台
 
-实时监控小红书笔记和评论的情感倾向、热点话题和竞品动态。
+这个仓库正在从“小红书舆情监控系统”扩展为“国际教育运营情报工作台”。
+当前第一阶段同时保留两套前端入口：
+
+- `/dashboard`：新的按来源运营情报工作台
+- `/dashboard/legacy`：旧的小红书舆情面板
 
 ## 技术栈
 
@@ -24,7 +28,7 @@ xhs-sentiment-monitor/
 │   │   └── websocket/         # WebSocket服务
 │   ├── scripts/              # 启停脚本
 │   └── main.py               # FastAPI入口
-├── frontend/                 # Next.js前端（待开发）
+├── frontend/                 # Next.js 前端
 └── docs/                     # 文档
 ```
 
@@ -60,12 +64,12 @@ vim .env
 
 访问 http://localhost:8000/docs 查看API文档
 
-### 前端启动（待开发）
+### 前端启动
 
 ```bash
 cd frontend
 npm install
-npm run dev
+bash scripts/dev.sh
 ```
 
 ## API接口
@@ -93,6 +97,11 @@ npm run dev
 - `GET /api/competitors/compare` - 竞品对比
 - `GET /api/competitors/{name}` - 竞品详情
 - `GET /api/competitors/{name}/trends` - 竞品趋势
+
+### 运营情报
+- `GET /api/config/source-nav` - 来源导航元信息
+- `GET /api/intel/overview` - 总览页分区与轻辅助栏
+- `GET /api/intel/sources/{source_key}` - 单个来源页数据
 
 ## 配置说明
 
