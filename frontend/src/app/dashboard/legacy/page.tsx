@@ -1,5 +1,10 @@
-import { LegacyXhsDashboard } from "@/components/dashboard/legacy-xhs-dashboard";
+import { XhsSentimentDashboard } from "@/components/xhs-sentiment/xhs-sentiment-dashboard";
+import { WebSocketProvider } from "@/lib/websocket";
 
 export default function LegacyDashboardPage() {
-  return <LegacyXhsDashboard />;
+  return (
+    <WebSocketProvider>
+      <XhsSentimentDashboard />
+    </WebSocketProvider>
+  );
 }

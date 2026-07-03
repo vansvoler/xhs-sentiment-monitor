@@ -3,14 +3,26 @@
 """
 import asyncio
 from contextlib import asynccontextmanager
+
+import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-from src.config import settings
-from src.db.mongodb import init_mongodb, close_mongodb
-from src.websocket.manager import websocket_manager
-from src.api import notes, comments, sentiment, trends, competitors, config, intel
+
+from src.api import (
+    alerts,
+    comments,
+    competitors,
+    config,
+    intel,
+    kol,
+    notes,
+    sentiment,
+    trends,
+)
 from src.collectors.scheduler import start_scheduler, stop_scheduler
+from src.config import settings
+from src.db.mongodb import close_mongodb, init_mongodb
+from src.websocket.manager import websocket_manager
 
 
 @asynccontextmanager
@@ -23,6 +35,10 @@ async def lifespan(app: FastAPI):
     # 初始化数据库连接
     await init_mongodb()
 
+    # 首次从 .env 播种监控关键词到数据库
+    from src.services.keyword_config import keyword_config
+    await keyword_config.seed_if_empty()
+
     # 启动任务调度器
     start_scheduler()
 
@@ -32,7 +48,7 @@ async def lifespan(app: FastAPI):
     print("系统启动完成")
 
     yield
-    
+
     # 清理资源
     print("关闭系统...")
     stop_scheduler()
@@ -65,6 +81,8 @@ app.include_router(trends.router, prefix="/api/trends", tags=["趋势分析"])
 app.include_router(competitors.router, prefix="/api/competitors", tags=["竞品分析"])
 app.include_router(config.router, prefix="/api/config", tags=["配置"])
 app.include_router(intel.router, prefix="/api/intel", tags=["运营情报"])
+app.include_router(alerts.router, prefix="/api/alerts", tags=["舆情预警"])
+app.include_router(kol.router, prefix="/api/kol", tags=["KOL挖掘"])
 
 
 @app.get("/")

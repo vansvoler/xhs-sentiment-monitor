@@ -1,40 +1,54 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Host+Grotesk:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap');
 @import "tailwindcss";
 
 @theme inline {
-  /* ── 背景色 ── */
-  --color-background:        #09090b;
-  --color-surface:           #111113;
-  --color-surface-elevated:  #18181b;
-  --color-border:            #27272a;
-  --color-border-muted:      #1c1c1f;
+  /* ── 背景（浅色·大留白）── */
+  --color-background:        #f4f6fa;  /* 页面底：极浅蓝灰 */
+  --color-surface:           #ffffff;  /* 卡片：白 */
+  --color-surface-elevated:  #eef2f8;  /* 悬浮/次级块面 */
+  --color-border:            #dce1e9;  /* 分割线（品牌浅灰系）*/
+  --color-border-muted:      #eaeef4;
 
-  /* ── 文字色（WCAG AA 全部通过）── */
-  --color-text-primary:      #ffffff;
-  --color-text-body:         #f4f4f5;
-  --color-text-secondary:    #a1a1aa;
-  --color-text-muted:        #71717a;
+  /* ── 文字（深色，WCAG AA）── */
+  --color-text-primary:      #17233f;  /* 深蓝黑：标题 */
+  --color-text-body:         #1f2a44;  /* 正文 */
+  --color-text-secondary:    #5a6474;  /* 次级 */
+  --color-text-muted:        #7b8494;  /* 说明/占位 */
 
-  /* ── 品牌色（深宝蓝，替换旧品牌红）── */
-  --color-brand:             #1e51a2;
+  /* ── 品牌色 ── */
+  --color-brand:             #1e51a2;  /* 渊学通蓝：主色 */
   --color-brand-hover:       #1a4690;
-  --color-brand-muted:       rgba(30, 81, 162, 0.12);
+  --color-brand-muted:       rgba(30, 81, 162, 0.10);
+  --color-teal:              #26b7bc;  /* 渊学通蓝绿：成长/科技感 */
+  --color-teal-soft:         #bedfc2;  /* 渊学通浅绿 */
+  --color-sky:               #c7d9f0;  /* 浅蓝背景 */
 
-  /* ── 情感色（收敛为 3 色，移除蓝/橙）── */
-  --color-positive:          #22c55e;
-  --color-positive-muted:    rgba(34, 197, 94, 0.1);
-  --color-negative:          #f87171;
-  --color-negative-muted:    rgba(248, 113, 113, 0.1);
-  --color-neutral:           #52525b;
-  --color-neutral-muted:     rgba(82, 82, 91, 0.15);
+  /* ── 语义色（品牌口径）── */
+  --color-positive:          #16a34a;
+  --color-positive-muted:    rgba(22, 163, 74, 0.10);
+  --color-negative:          #ea5457;  /* 鼓励红 */
+  --color-negative-muted:    rgba(234, 84, 87, 0.10);
+  --color-neutral:           #727171;  /* 深灰 */
+  --color-neutral-muted:     rgba(114, 113, 113, 0.12);
+  --color-warning:           #f8b857;  /* 暖黄橙 */
+  --color-warning-text:      #b45309;
 
-  /* ── 字体（不变）── */
-  --font-sans: 'Fira Sans', system-ui, sans-serif;
+  /* ── 字号刻度（整体上调，提升可读性）── */
+  --text-xs:   0.8125rem;   --text-xs--line-height:   1.5;    /* 13px */
+  --text-sm:   0.9375rem;   --text-sm--line-height:   1.55;   /* 15px */
+  --text-base: 1.0625rem;   --text-base--line-height: 1.6;    /* 17px */
+  --text-lg:   1.1875rem;   --text-lg--line-height:   1.5;    /* 19px */
+  --text-xl:   1.375rem;    --text-xl--line-height:   1.45;   /* 22px */
+  --text-2xl:  1.625rem;    --text-2xl--line-height:  1.35;   /* 26px */
+  --text-3xl:  2rem;        --text-3xl--line-height:  1.3;    /* 32px */
+
+  /* ── 字体（中文思源黑体 / 英文 Host Grotesk）── */
+  --font-sans: 'Host Grotesk', 'Noto Sans SC', system-ui, sans-serif;
   --font-mono: 'Fira Code', monospace;
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * {
@@ -51,18 +65,18 @@ body {
 
 /* 滚动条 */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 2px;
+  background: #c7cdd8;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: #a9b1bf;
 }
 
 /* 焦点环 */
@@ -71,7 +85,6 @@ body {
   outline-offset: 2px;
 }
 
-/* 实时脉冲动画 */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(0.85); }

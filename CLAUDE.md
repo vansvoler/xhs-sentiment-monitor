@@ -4,6 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 常用命令
 
+全仓统一启停在仓库根目录执行：
+
+```bash
+# 同时启动前后端，日志写到根目录 logs/
+bash scripts/dev-all.sh
+
+# 本地联通 smoke test
+bash scripts/smoke.sh
+```
+
 所有后端操作在 `backend/` 目录下执行：
 
 ```bash
@@ -29,7 +39,9 @@ cd backend && uv run pytest tests/test_foo.py::test_bar
 
 ## 架构概览
 
-**数据流**：TikHub API（`api.tikhub.dev`）→ `TikHubClient` → `DataCollector` → MongoDB → Senta 情感分析 → WebSocket 推送
+**小红书旧链路**：TikHub API（`api.tikhub.dev`）→ `TikHubClient` → `DataCollector` → MongoDB → Senta 情感分析 → WebSocket 推送
+
+**官方情报主线**：`backend/config/intel_sources.json` → 官方站点/RSS/JSON/HTML 列表 → `collectors/*_news.py` → `intel_items` → `/api/intel/*` → `/dashboard`
 
 ### 模块关系
 
@@ -37,7 +49,10 @@ cd backend && uv run pytest tests/test_foo.py::test_bar
 APScheduler (collectors/scheduler.py)
   ├─ collect_keywords   每 30 分钟：关键词 → 入库新笔记 → 广播
   ├─ collect_comments   每 30 分钟：6h 未刷新的笔记拉评论
-  └─ analyze_sentiment  每 15 分钟：补齐缺失的 sentiment 字段
+  ├─ analyze_sentiment  每 15 分钟：补齐缺失的 sentiment 字段；判负即触发告警
+  ├─ scan_alerts        每 30 分钟：按关键词扫负面率/声量突增 → alerts
+  ├─ collect_ucas_news  每 60 分钟：UCAS 官方动态 → intel_items
+  └─ collect_university_news 每 60 分钟：配置化官网信源 → intel_items
          │
          ▼
   DataCollector (collectors/xhs_api.py) — 采集 + upsert
@@ -56,7 +71,19 @@ APScheduler (collectors/scheduler.py)
 
 ### API 路由（挂在 `/api/` 前缀下）
 
-`/notes` `/comments` `/sentiment` `/trends` `/competitors` — 全部读 MongoDB，`init_mongodb()` 启动时建索引。
+`/notes` `/comments` `/sentiment` `/trends` `/competitors` `/alerts` `/kol` — 旧小红书模块，全部读 MongoDB。
+
+> `/kol` KOL 挖掘：聚合 `notes` 作者 → 相关度/互动/情感打分 → 候选池；昵称含 `渊学通`/`英通` 判自家并排除，命中词全属竞品词的打竞品标。人工态（shortlist/reject）与付费富化（`get_user_info` 补粉丝数，有每日上限+缓存）存 `kol_profiles`。设计见 `docs/kol-discovery-design.md`。
+
+> 数据模型要点：笔记 `category` 只存桶值（brand/competitor/industry），真正的关键词在 `search_keyword`。竞品/趋势/告警一律按 `search_keyword` 聚合、用 `published_at`（发布时间）做时间轴，而非 `collected_at`（抓取时间）。同一篇笔记上游会返回变体 `note_id`，故按 `dedup_key`（`user_id|published_at`）去重入库；清理历史冗余用 `bash backend/scripts/dedup_notes.sh [--apply]`（默认 dry-run）。`/alerts` 三类告警：负面单条 / 关键词负面率 / 声量突增，按 `alert_id` 去重，命中即 WebSocket 推送 `alert`。
+
+`/intel/overview` `/intel/sources/{source_key}` `/config/source-nav` — 官方情报工作台，当前主线 source key 为 `ucas`、`university_site`、`exam_board`、`visa_policy`、`wechat_media`。
+
+官网/机构网站来源通过 `backend/config/intel_sources.json` 配置，格式见 `docs/configurable-intel-sources.md`。
+
+`/config/keywords` GET/POST/DELETE — 监控关键词运行时增删；关键词存 `monitor_keywords`，首次从 `.env` 三组词播种，采集器 `collect_keywords` 读它（不再读 `.env`）。前端按 tab（品牌/竞品/行业）分组展示、就地增删。
+
+`init_mongodb()` 启动时为 `notes`、`comments`、`intel_items`、`intel_source_syncs`、`alerts`、`kol_profiles`、`monitor_keywords` 建索引。
 
 ### WebSocket 消息类型
 
@@ -98,26 +125,35 @@ cd frontend && bash scripts/dev.sh
 cd frontend && npm run build
 ```
 
+## 根目录脚本
+
+- `scripts/dev-all.sh`：同时启动前后端，阻塞运行，`Ctrl-C` 一起关闭
+- `scripts/smoke.sh`：检查 dashboard、overview API、大学官网同步状态 API
+
 ### 前端结构
 
 ```
 frontend/src/
   app/
-    dashboard/page.tsx          — 新运营情报工作台（Client Component）
-    dashboard/legacy/page.tsx   — 旧小红书舆情页
+    dashboard/page.tsx          — 官方情报工作台（Client Component）
+    dashboard/legacy/page.tsx   — 小红书舆情页（WebSocketProvider 包裹）
+    dashboard/kol/page.tsx      — KOL 挖掘页
   components/
-    dashboard/           — header, stats-overview, notes-table, hot-topics, realtime-feed
-    operations-dashboard/ — 新运营工作台组件
+    xhs-sentiment/       — 小红书舆情：header, category-tabs, notes-table,
+                           hot-topics, realtime-feed, alert-panel, xhs-sentiment-dashboard
+    operations-dashboard/ — 运营工作台，按依赖簇分子目录：
+        shell/   — dashboard-shell, sidebar, helper-rail, *-state, add-source-dialog
+        source/  — source-*, intel-card, source-sections/
+        overview/— overview-panel, newsnow-overview, source-tile, university-tiles
+    kol/                 — kol-discovery
     charts/              — sentiment-donut, trend-line, competitor-bar（Recharts）
     ui/                  — card, badge, skeleton
   lib/
-    api.ts               — fetch 封装，读 NEXT_PUBLIC_API_URL
+    api/                 — 按域拆：client(BASE/get/post) + xhs + alerts + kol，index 汇出
     intel-api.ts         — 运营情报 fetch 封装
-    websocket.ts         — useWebSocket hook，读 NEXT_PUBLIC_WS_URL，自动重连
+    websocket.tsx        — WebSocketProvider（单连接）+ useWebSocket 订阅 hook
     utils.ts             — 日期/数字格式化，SENTIMENT_CONFIG
-  types/
-    index.ts             — 统一导出
-    intel.ts             — 运营情报类型
+  types/                 — 按域拆：note / alert / kol / ws / intel，index 汇出
 ```
 
 前端环境变量在 `frontend/.env.local`：`NEXT_PUBLIC_API_URL` / `NEXT_PUBLIC_WS_URL`。

@@ -1,6 +1,7 @@
 """
 MongoDB 异步客户端
 """
+
 import logging
 from typing import Optional
 
@@ -27,7 +28,9 @@ class MongoDB:
         self.client = AsyncIOMotorClient(settings.MONGODB_URL)
         self.db = self.client[settings.MONGODB_DB_NAME]
         await self._ensure_indexes()
-        logger.info("MongoDB 连接成功: %s/%s", settings.MONGODB_URL, settings.MONGODB_DB_NAME)
+        logger.info(
+            "MongoDB 连接成功: %s/%s", settings.MONGODB_URL, settings.MONGODB_DB_NAME
+        )
 
     async def _ensure_indexes(self) -> None:
         """建立查询/唯一索引"""
@@ -37,6 +40,7 @@ class MongoDB:
 
         # notes 唯一 + 常用排序字段
         await notes.create_index("note_id", unique=True)
+        await notes.create_index("dedup_key")  # (作者+发布时间) 规范去重键
         await notes.create_index("collected_at")
         await notes.create_index("comments_collected_at")
         await notes.create_index([("sentiment.label", 1), ("collected_at", -1)])
@@ -56,6 +60,25 @@ class MongoDB:
             [("source_type", 1), ("source_group", 1), ("published_at", -1)]
         )
         await intel_items.create_index([("school_name", 1), ("published_at", -1)])
+
+        intel_syncs = self.db["intel_source_syncs"]
+        await intel_syncs.create_index("source_id", unique=True)
+        await intel_syncs.create_index([("source_type", 1), ("synced_at", -1)])
+
+        # alerts 舆情预警
+        alerts = self.db["alerts"]
+        await alerts.create_index("alert_id", unique=True)
+        await alerts.create_index([("status", 1), ("created_at", -1)])
+        await alerts.create_index([("level", 1), ("created_at", -1)])
+
+        # kol_profiles KOL 人工态 + 富化缓存
+        kol_profiles = self.db["kol_profiles"]
+        await kol_profiles.create_index("user_id", unique=True)
+        await kol_profiles.create_index("enriched_at")
+
+        # monitor_keywords 监控关键词（运行时可增删）
+        monitor_keywords = self.db["monitor_keywords"]
+        await monitor_keywords.create_index("keyword", unique=True)
 
     async def disconnect(self) -> None:
         """关闭连接"""

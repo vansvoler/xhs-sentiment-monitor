@@ -1,9 +1,11 @@
-# 小红书与留学运营情报工作台
+# 官方留学情报工作台
 
-这个仓库正在从“小红书舆情监控系统”扩展为“国际教育运营情报工作台”。
-当前第一阶段同时保留两套前端入口：
+这个仓库正在从“小红书舆情监控系统”转向“国际教育官方情报工作台”。
+当前主线聚焦海外大学、UCAS、考试局、签证政策等官方信源；小红书链路暂时保留为独立旧模块，后续可单独产品化。
 
-- `/dashboard`：新的按来源运营情报工作台
+当前保留两套前端入口：
+
+- `/dashboard`：新的官方情报工作台
 - `/dashboard/legacy`：旧的小红书舆情面板
 
 ## 技术栈
@@ -33,6 +35,18 @@ xhs-sentiment-monitor/
 ```
 
 ## 快速开始
+
+### 一键启动
+
+```bash
+bash scripts/dev-all.sh
+```
+
+### 本地联通检查
+
+```bash
+bash scripts/smoke.sh
+```
 
 ### 环境要求
 
@@ -101,7 +115,18 @@ bash scripts/dev.sh
 ### 运营情报
 - `GET /api/config/source-nav` - 来源导航元信息
 - `GET /api/intel/overview` - 总览页分区与轻辅助栏
-- `GET /api/intel/sources/{source_key}` - 单个来源页数据
+- `GET /api/intel/sources/{source_key}` - 单个官方来源页数据
+- `GET /api/intel/sources/university_site/sync-status` - 大学官网同步状态
+
+当前官方来源 key：
+
+| key | 说明 |
+|---|---|
+| `ucas` | UCAS 官方动态 |
+| `university_site` | 海外大学官网新闻 |
+| `exam_board` | 考试局官方动态 |
+| `visa_policy` | 签证政策动态 |
+| `wechat_media` | 媒体与垂类号观察 |
 
 ## 配置说明
 

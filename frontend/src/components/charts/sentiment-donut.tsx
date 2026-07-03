@@ -28,7 +28,7 @@ export function SentimentDonut({ distribution }: SentimentDonutProps) {
 
   if (total === 0) {
     return (
-      <div className="flex h-48 items-center justify-center text-[#71717a] text-sm">
+      <div className="flex h-48 items-center justify-center text-[#7b8494] text-sm">
         暂无情感数据
       </div>
     );
@@ -54,11 +54,11 @@ export function SentimentDonut({ distribution }: SentimentDonutProps) {
           </Pie>
           <Tooltip
             contentStyle={{
-              background: "#18181b",
-              border: "1px solid #27272a",
+              background: "#eef2f8",
+              border: "1px solid #dce1e9",
               borderRadius: "8px",
               fontSize: "12px",
-              color: "#f4f4f5",
+              color: "#1f2a44",
             }}
             formatter={(value) => [
               `${String(value)} 条 (${((Number(value) / total) * 100).toFixed(1)}%)`,
@@ -68,17 +68,17 @@ export function SentimentDonut({ distribution }: SentimentDonutProps) {
             iconType="circle"
             iconSize={8}
             formatter={(value) => (
-              <span className="text-xs text-[#a1a1aa]">{value}</span>
+              <span className="text-xs text-[#5a6474]">{value}</span>
             )}
           />
         </PieChart>
       </ResponsiveContainer>
       {/* 中心总数 */}
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-mono text-2xl font-semibold text-[#ffffff]">
+        <span className="font-mono text-2xl font-semibold text-[#17233f]">
           {total}
         </span>
-        <span className="text-xs text-[#71717a]">总计</span>
+        <span className="text-xs text-[#7b8494]">总计</span>
       </div>
     </div>
   );

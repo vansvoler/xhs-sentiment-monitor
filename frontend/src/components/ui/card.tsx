@@ -5,10 +5,10 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export function Card({ elevated, className = "", children, ...props }: CardProps) {
-  const bg = elevated ? "bg-[#18181b]" : "bg-[#111113]";
+  const bg = elevated ? "bg-[#eef2f8]" : "bg-[#ffffff]";
   return (
     <div
-      className={`rounded-[10px] border border-[#27272a] ${bg} ${className}`}
+      className={`rounded-[10px] border border-[#dce1e9] ${bg} ${className}`}
       {...props}
     >
       {children}
@@ -26,7 +26,7 @@ export function CardHeader({ className = "", children, ...props }: HTMLAttribute
 
 export function CardTitle({ className = "", children, ...props }: HTMLAttributes<HTMLHeadingElement>) {
   return (
-    <h3 className={`text-sm font-medium text-[#f4f4f5] ${className}`} {...props}>
+    <h3 className={`text-sm font-medium text-[#1f2a44] ${className}`} {...props}>
       {children}
     </h3>
   );

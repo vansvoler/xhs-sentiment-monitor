@@ -22,20 +22,20 @@ export const SENTIMENT_CONFIG: Record<
 > = {
   positive: {
     label: "正面",
-    color: "#22c55e",
-    bgColor: "rgba(34,197,94,0.1)",
-    textColor: "#22c55e",
+    color: "#16a34a",
+    bgColor: "rgba(22, 163, 74,0.1)",
+    textColor: "#16a34a",
   },
   negative: {
     label: "负面",
-    color: "#f87171",
-    bgColor: "rgba(248,113,113,0.1)",
-    textColor: "#f87171",
+    color: "#ea5457",
+    bgColor: "rgba(234, 84, 87,0.1)",
+    textColor: "#ea5457",
   },
   neutral: {
     label: "中性",
-    color: "#52525b",
-    bgColor: "rgba(82,82,91,0.15)",
-    textColor: "#a1a1aa",
+    color: "#727171",
+    bgColor: "rgba(114, 113, 113,0.15)",
+    textColor: "#5a6474",
   },
 };

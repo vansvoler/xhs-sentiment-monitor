@@ -21,6 +21,22 @@ from src.db.mongodb import mongodb
 logger = logging.getLogger(__name__)
 
 
+def note_dedup_key(note: Dict[str, Any]) -> str:
+    """规范化去重键：同一篇笔记的变体 note_id 共享 (作者 + 发布时间)。
+
+    上游会给同一篇笔记返回中段不同的变体 note_id（如 ...0000... / ...0002...），
+    按 note_id 去重会漏。作者 user_id + 发布时间秒级一致，是稳定的"同篇"身份；
+    缺任一信息则回退到 note_id 本身，避免把未知项错并。
+    """
+    author = note.get("author") or {}
+    uid = author.get("user_id") or ""
+    pub = note.get("published_at")
+    if uid and pub is not None:
+        pub_s = pub.isoformat() if hasattr(pub, "isoformat") else str(pub)
+        return f"{uid}|{pub_s}"
+    return f"nid:{note.get('note_id', '')}"
+
+
 class DataCollector:
     """数据采集器 + 持久化"""
 
@@ -72,38 +88,56 @@ class DataCollector:
 
     # ============ 持久化 ============
     async def upsert_notes(self, notes: List[Dict[str, Any]]) -> List[str]:
-        """批量 upsert 笔记；返回首次入库的 note_id 列表"""
+        """批量 upsert 笔记；按 canonical key 去重，返回首次入库的 note_id 列表"""
         if not notes:
             return []
 
         collection = mongodb.get_collection("notes")
         now = datetime.utcnow()
-        new_ids: List[str] = []
 
-        # 查出已有哪些 note_id，用于区分"新笔记"
-        existing_ids = set()
+        # 批内先按 canonical key 去重（同批的变体只留首个）
+        seen: set[str] = set()
+        deduped: List[Dict[str, Any]] = []
+        for n in notes:
+            key = note_dedup_key(n)
+            n["dedup_key"] = key
+            if key not in seen:
+                seen.add(key)
+                deduped.append(n)
+
+        # 查库中已存在的 dedup_key，用于区分"新笔记"
+        existing: set[str] = set()
         async for doc in collection.find(
-            {"note_id": {"$in": [n["note_id"] for n in notes]}}, {"note_id": 1}
+            {"dedup_key": {"$in": list(seen)}}, {"dedup_key": 1}
         ):
-            existing_ids.add(doc["note_id"])
+            existing.add(doc["dedup_key"])
 
+        new_ids: List[str] = []
         ops: List[UpdateOne] = []
-        for note in notes:
-            note_id = note["note_id"]
-            if note_id not in existing_ids:
-                new_ids.append(note_id)
-            doc = {**note, "updated_at": now}
+        for note in deduped:
+            key = note["dedup_key"]
+            if key not in existing:
+                new_ids.append(note["note_id"])
+            # note_id 用首个变体固定，其余字段随最新刷新
+            set_fields = {k: v for k, v in note.items() if k != "note_id"}
+            set_fields["updated_at"] = now
             ops.append(
                 UpdateOne(
-                    {"note_id": note_id},
-                    {"$set": doc, "$setOnInsert": {"collected_at": now}},
+                    {"dedup_key": key},
+                    {
+                        "$set": set_fields,
+                        "$setOnInsert": {
+                            "note_id": note["note_id"],
+                            "collected_at": now,
+                        },
+                    },
                     upsert=True,
                 )
             )
 
         if ops:
             await collection.bulk_write(ops, ordered=False)
-            logger.info("笔记入库: 总 %d 条，新增 %d", len(ops), len(new_ids))
+            logger.info("笔记入库: 去重后 %d 条，新增 %d", len(ops), len(new_ids))
 
         return new_ids
 

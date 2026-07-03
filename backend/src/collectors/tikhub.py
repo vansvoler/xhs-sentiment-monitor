@@ -12,7 +12,6 @@ TikHub XHS API 客户端
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -186,6 +185,34 @@ class _Http:
 _SEARCH_PATH   = "/api/v1/xiaohongshu/app/search_notes"
 _DETAIL_PATH   = "/api/v1/xiaohongshu/web_v2/fetch_feed_notes_v2"
 _COMMENTS_PATH = "/api/v1/xiaohongshu/web_v2/fetch_note_comments"
+_USER_INFO_PATH = "/api/v1/xiaohongshu/web_v2/fetch_user_info_app"
+
+
+def _norm_user_info(data: Dict[str, Any]) -> Dict[str, Any]:
+    """归一化用户主页信息（供 KOL 富化）。
+
+    TikHub 各 provider 字段名不统一，这里做防御式取值；充值联通后按实际
+    响应校对。粉丝字段常见于 fans / fans_count / follower_count。
+    """
+    basic = data.get("basic_info") or data.get("user") or data
+    interactions = data.get("interactions") or {}
+
+    def _pick(*keys: str) -> Any:
+        for src in (basic, interactions, data):
+            for k in keys:
+                if isinstance(src, dict) and src.get(k) not in (None, ""):
+                    return src[k]
+        return None
+
+    fans = _pick("fans", "fans_count", "follower_count", "followers")
+    return {
+        "fans_count": int(fans) if fans is not None else None,
+        "verified": bool(_pick("red_official_verified", "verified", "is_verified"))
+        if _pick("red_official_verified", "verified", "is_verified") is not None
+        else None,
+        "bio": _pick("desc", "description", "bio", "signature"),
+        "ip_location": _pick("ip_location", "location"),
+    }
 
 
 class XHSAdapter:
@@ -232,6 +259,17 @@ class XHSAdapter:
         # user 优先用外层（更完整），fallback note 内嵌
         user = data.get("user") or note.get("user") or {}
         return _norm_note(note, user=user)
+
+    # ---- 用户信息 ----
+    async def get_user_info(self, user_id: str) -> Dict[str, Any]:
+        """web_v2/fetch_user_info_app → 归一化的粉丝/认证/简介/地区"""
+        resp = await self._http.get(_USER_INFO_PATH, {"user_id": user_id})
+        data = resp.get("data") or {}
+        if not isinstance(data, dict):
+            raise TikHubRetriableError(
+                f"fetch_user_info_app data 异常: {type(data).__name__}"
+            )
+        return _norm_user_info(data)
 
     # ---- 评论 ----
     async def get_note_comments(
@@ -294,6 +332,10 @@ class TikHubClient:
     async def get_note_detail(self, note_id: str) -> Dict[str, Any]:
         adapter = await self._ensure_ready()
         return await adapter.get_note_detail(note_id)
+
+    async def get_user_info(self, user_id: str) -> Dict[str, Any]:
+        adapter = await self._ensure_ready()
+        return await adapter.get_user_info(user_id)
 
     async def get_note_comments(
         self, note_id: str, cursor: str = ""

@@ -1,6 +1,7 @@
 """
 统一运营情报数据模型
 """
+
 from datetime import datetime
 from enum import Enum
 
@@ -13,7 +14,17 @@ class IntelSourceType(str, Enum):
     XIAOHONGSHU = "xiaohongshu"
     UCAS = "ucas"
     UNIVERSITY_SITE = "university_site"
+    EXAM_BOARD = "exam_board"
+    VISA_POLICY = "visa_policy"
     WECHAT_MEDIA = "wechat_media"
+
+
+class IntelSourceSyncStatus(str, Enum):
+    """来源同步状态。"""
+
+    SUCCESS = "success"
+    BLOCKED = "blocked"
+    ERROR = "error"
 
 
 class IntelItem(BaseModel):
@@ -32,6 +43,8 @@ class IntelItem(BaseModel):
     priority_hint: str | None = None
     school_name: str | None = None
     source_group: str | None = None
+    external_id: str | None = None
+    content_html: str | None = None
 
 
 class IntelOverviewSection(BaseModel):
@@ -48,3 +61,17 @@ class IntelHelperRail(BaseModel):
 
     highlight_count: int
     top_counts: dict[str, int]
+
+
+class IntelSourceSyncReport(BaseModel):
+    """单个来源的一次同步结果。"""
+
+    source_id: str
+    source_type: IntelSourceType
+    source_name: str
+    school_name: str | None = None
+    status: IntelSourceSyncStatus
+    item_count: int = 0
+    error_message: str | None = None
+    notes: str | None = None
+    synced_at: datetime

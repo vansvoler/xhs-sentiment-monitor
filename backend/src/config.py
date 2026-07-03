@@ -1,8 +1,9 @@
 """
 系统配置管理
 """
+from typing import Dict, List
+
 from pydantic_settings import BaseSettings
-from typing import List, Dict
 
 
 class Settings(BaseSettings):
@@ -79,6 +80,28 @@ class Settings(BaseSettings):
     SENTIMENT_MODEL: str = "MiniMax-Text-01"
     SENTIMENT_BATCH_SIZE: int = 20
     SENTIMENT_CACHE_TTL: int = 3600
+
+    # ---------- 舆情预警 ----------
+    # 负面笔记/评论触发实时告警的最低情感置信度
+    ALERT_NEGATIVE_SCORE_MIN: float = 0.6
+    # 作者粉丝数达到该值视为"高影响力"，负面时升级为 critical
+    ALERT_HIGH_INFLUENCE_FANS: int = 10000
+    # 关键词负面率告警阈值（窗口内负面占比超过即告警）
+    ALERT_NEGATIVE_RATE_THRESHOLD: float = 0.3
+    # 声量突增告警：窗口声量 / 上一窗口声量 超过该倍数
+    ALERT_SPIKE_RATIO: float = 2.0
+    # 关键词健康扫描的时间窗口（小时）
+    ALERT_SCAN_HOURS: int = 24
+    # 关键词需达到该最小声量才评估负面率/突增（避免小样本噪声）
+    ALERT_MIN_VOLUME: int = 5
+    # 关键词健康扫描周期（分钟）
+    ALERT_SCAN_INTERVAL_MINUTES: int = 30
+
+    # ---------- KOL 挖掘 ----------
+    # 昵称含这些词的账号判定为"自家"，从候选池排除
+    KOL_OWN_ACCOUNT_MARKERS: List[str] = ["渊学通", "英通"]
+    # 富化（get_user_info）每日调用上限，防止付费失控
+    KOL_ENRICH_DAILY_LIMIT: int = 100
 
     # ---------- WebSocket ----------
     WS_HEARTBEAT_INTERVAL: int = 30

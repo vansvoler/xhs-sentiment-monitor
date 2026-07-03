@@ -32,7 +32,7 @@ interface TagBadgeProps {
 
 export function TagBadge({ children }: TagBadgeProps) {
   return (
-    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs bg-[#18181b] text-[#a1a1aa] border border-[#27272a]">
+    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs bg-[#eef2f8] text-[#5a6474] border border-[#dce1e9]">
       {children}
     </span>
   );

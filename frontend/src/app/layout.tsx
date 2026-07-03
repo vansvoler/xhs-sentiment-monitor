@@ -10,8 +10,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="zh-CN" className="h-full dark">
-      <body className="min-h-full bg-[#09090b] text-[#f4f4f5] antialiased">
+    <html lang="zh-CN" className="h-full">
+      <body className="min-h-full bg-[#f4f6fa] text-[#1f2a44] antialiased">
         {children}
       </body>
     </html>

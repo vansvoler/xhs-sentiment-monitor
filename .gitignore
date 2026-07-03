@@ -18,6 +18,10 @@ logs/
 .idea/
 .vscode/
 
+# 本地 AI/交互运行状态，可能包含凭证或临时预览
+.codex/
+.superpowers/
+
 # 测试
 .pytest_cache/
 .coverage
@@ -26,3 +30,7 @@ logs/
 dist/
 build/
 *.egg-info/
+
+# 本地备份/临时
+xhs_sentiment.archive
+temp/

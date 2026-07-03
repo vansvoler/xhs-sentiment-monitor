@@ -1,9 +1,11 @@
 """
 笔记 API 路由
 """
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional
-from datetime import datetime, timedelta
+
 from src.db.mongodb import mongodb
 from src.models.note import Note
 
@@ -31,21 +33,22 @@ async def list_notes(
     """
     collection = mongodb.get_collection("notes")
 
-    query = {}
+    query: Dict[str, Any] = {}
     if category:
         query["category"] = category
     if sentiment:
         query["sentiment.label"] = sentiment
     if start_date or end_date:
-        query["collected_at"] = {}
+        date_range: Dict[str, Any] = {}
         if start_date:
-            query["collected_at"]["$gte"] = start_date
+            date_range["$gte"] = start_date
         if end_date:
-            query["collected_at"]["$lt"] = end_date
-    
+            date_range["$lt"] = end_date
+        query["collected_at"] = date_range
+
     cursor = collection.find(query).skip(skip).limit(limit).sort("collected_at", -1)
     notes = await cursor.to_list(length=limit)
-    
+
     return notes
 
 
@@ -54,10 +57,10 @@ async def get_note(note_id: str):
     """获取笔记详情"""
     collection = mongodb.get_collection("notes")
     note = await collection.find_one({"note_id": note_id})
-    
+
     if not note:
         raise HTTPException(status_code=404, detail="笔记不存在")
-    
+
     return note
 
 

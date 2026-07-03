@@ -1,24 +1,35 @@
 """
 任务调度器
 
-三个周期性任务：
+周期性任务：
 - collect_keywords    关键词 → 搜索 → 详情 → 入库 → 推送新笔记
 - collect_comments    已采笔记 → 拉评论 → 入库
 - analyze_sentiment   未分析的 notes/comments → Senta → 回写 → 推送
+- collect_ucas_news   UCAS 官方动态 → intel_items
+- collect_university_news 海外大学官网动态 → intel_items
 """
+
 from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.schedulers.asyncio import (  # type: ignore[import-untyped]
+    AsyncIOScheduler,
+)
+from apscheduler.triggers.interval import (  # type: ignore[import-untyped]
+    IntervalTrigger,
+)
 
 from src.analyzers.senta_service import get_sentiment_service
+from src.collectors.university_sources import load_intel_sources
 from src.collectors.xhs_api import DataCollector
 from src.config import settings
 from src.db.mongodb import mongodb
+from src.services.alert_service import alert_service
+from src.services.intel_ingest import sync_ucas_news, sync_university_news
+from src.services.keyword_config import keyword_config
 from src.websocket.manager import websocket_manager
 
 logger = logging.getLogger(__name__)
@@ -30,7 +41,7 @@ _collector = DataCollector()
 # ================ 任务 1: 关键词采集 ================
 async def collect_keywords() -> None:
     """遍历监控关键词，搜索新笔记并入库"""
-    kw_map = settings.keyword_category_map
+    kw_map = await keyword_config.category_map()
     if not kw_map:
         logger.debug("监控关键词为空，跳过关键词采集")
         return
@@ -93,6 +104,7 @@ async def analyze_sentiment() -> None:
         broadcast=lambda doc, result: websocket_manager.send_sentiment_update(
             {"note_id": doc["note_id"], "sentiment": result}
         ),
+        alert_eval=lambda doc: alert_service.evaluate_note(doc),
         senta=senta,
         batch_size=batch_size,
     )
@@ -100,6 +112,7 @@ async def analyze_sentiment() -> None:
         "comments",
         text_builder=lambda d: d.get("content", ""),
         broadcast=None,
+        alert_eval=lambda doc: alert_service.evaluate_comment(doc),
         senta=senta,
         batch_size=batch_size,
     )
@@ -110,6 +123,7 @@ async def _analyze_collection(  # noqa: PLR0913
     *,
     text_builder,
     broadcast,
+    alert_eval,
     senta,
     batch_size: int,
 ) -> None:
@@ -120,33 +134,82 @@ async def _analyze_collection(  # noqa: PLR0913
     if not docs:
         return
 
+    id_field = "note_id" if collection_name == "notes" else "comment_id"
+    _neutral = {"label": "neutral", "score": 0.5, "emotion": "neutral"}
+
     texts = [text_builder(d) for d in docs]
-    # 过滤空文本（直接标成中性避免反复扫描）
     valid_indices = [i for i, t in enumerate(texts) if t.strip()]
+
+    # 空文本统一标中性，避免每轮重复扫描（含全空批次）
+    for idx, doc in enumerate(docs):
+        if idx not in set(valid_indices):
+            await coll.update_one(
+                {id_field: doc[id_field]}, {"$set": {"sentiment": _neutral}}
+            )
     if not valid_indices:
         return
+
     results = senta.batch_analyze([texts[i] for i in valid_indices])
-
-    id_field = "note_id" if collection_name == "notes" else "comment_id"
-    analyzed_set: set[int] = set()
-
+    alerts = []
     for idx, result in zip(valid_indices, results):
         doc = docs[idx]
-        sentiment_doc = result.model_dump() if hasattr(result, "model_dump") else result.dict()
+        sentiment_doc = (
+            result.model_dump() if hasattr(result, "model_dump") else result.dict()
+        )
         await coll.update_one(
             {id_field: doc[id_field]}, {"$set": {"sentiment": sentiment_doc}}
         )
         if broadcast is not None:
             await broadcast(doc, sentiment_doc)
-        analyzed_set.add(idx)
+        alert = alert_eval({**doc, "sentiment": sentiment_doc})
+        if alert is not None:
+            alerts.append(alert)
 
-    # 空文本文档标为中性，避免每次循环重复扫描
-    _neutral = {"label": "neutral", "score": 0.5, "emotion": "neutral"}
-    for idx, doc in enumerate(docs):
-        if idx not in analyzed_set:
-            await coll.update_one({id_field: doc[id_field]}, {"$set": {"sentiment": _neutral}})
+    created = await alert_service.emit(alerts) if alerts else 0
+    logger.info(
+        "%s 情感分析完成 %d 条，触发告警 %d 条",
+        collection_name, len(valid_indices), created,
+    )
 
-    logger.info("%s 情感分析完成 %d 条", collection_name, len(valid_indices))
+
+async def collect_university_news_job() -> None:
+    """同步海外大学官网新闻情报。
+
+    每次触发都从 ``intel_sources.json`` 重新读取信源列表，使得通过 API 动态新增的
+    信源在下一轮即可生效，无需重启进程。
+    """
+
+    try:
+        sources = load_intel_sources()
+        count = await sync_university_news(sources)
+    except Exception as e:
+        logger.exception("大学新闻同步异常: %s", e)
+        return
+
+    logger.info("大学新闻同步完成，共写入 %d 条（信源数 %d）", count, len(sources))
+
+
+async def scan_alerts_job() -> None:
+    """周期扫描关键词负面率 / 声量突增，产出告警。"""
+    try:
+        alerts = await alert_service.scan_keyword_health()
+        created = await alert_service.emit(alerts)
+    except Exception as e:
+        logger.exception("舆情告警扫描异常: %s", e)
+        return
+    logger.info("舆情告警扫描完成，检出 %d 条，新增 %d 条", len(alerts), created)
+
+
+async def collect_ucas_news_job() -> None:
+    """同步 UCAS 官方新闻情报。"""
+
+    try:
+        count = await sync_ucas_news()
+    except Exception as e:
+        logger.exception("UCAS 新闻同步异常: %s", e)
+        return
+
+    logger.info("UCAS 新闻同步完成，共写入 %d 条", count)
 
 
 # ================ 调度控制 ================
@@ -158,7 +221,8 @@ def start_scheduler() -> None:
         id="collect_keywords",
         name="关键词采集",
         replace_existing=True,
-        next_run_time=datetime.utcnow() + timedelta(seconds=10),  # 启动 10s 后立即跑一次
+        next_run_time=datetime.utcnow()
+        + timedelta(seconds=10),  # 启动 10s 后立即跑一次
     )
     scheduler.add_job(
         collect_comments,
@@ -173,7 +237,32 @@ def start_scheduler() -> None:
         id="analyze_sentiment",
         name="情感分析",
         replace_existing=True,
-        next_run_time=datetime.utcnow() + timedelta(seconds=30),  # 启动 30s 后立即跑一次
+        next_run_time=datetime.utcnow()
+        + timedelta(seconds=30),  # 启动 30s 后立即跑一次
+    )
+    scheduler.add_job(
+        scan_alerts_job,
+        trigger=IntervalTrigger(minutes=settings.ALERT_SCAN_INTERVAL_MINUTES),
+        id="scan_alerts",
+        name="舆情告警扫描",
+        replace_existing=True,
+        next_run_time=datetime.utcnow() + timedelta(seconds=50),
+    )
+    scheduler.add_job(
+        collect_ucas_news_job,
+        trigger=IntervalTrigger(minutes=60),
+        id="collect_ucas_news",
+        name="UCAS 新闻同步",
+        replace_existing=True,
+        next_run_time=datetime.utcnow() + timedelta(seconds=40),
+    )
+    scheduler.add_job(
+        collect_university_news_job,
+        trigger=IntervalTrigger(minutes=60),
+        id="collect_university_news",
+        name="大学新闻同步",
+        replace_existing=True,
+        next_run_time=datetime.utcnow() + timedelta(seconds=45),
     )
     scheduler.start()
     logger.info("任务调度器已启动")

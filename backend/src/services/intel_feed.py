@@ -1,6 +1,7 @@
 """
 统一运营情报 feed helper
 """
+
 from collections import Counter
 from collections.abc import Iterable
 from pathlib import Path
@@ -10,15 +11,17 @@ from src.models.intel import (
     IntelHelperRail,
     IntelItem,
     IntelOverviewSection,
+    IntelSourceSyncReport,
     IntelSourceType,
 )
 from src.models.note import Note
 from src.services.intel_seed import load_seed_items
 
-SOURCE_LABELS = {
-    IntelSourceType.XIAOHONGSHU: "小红书",
+OFFICIAL_SOURCE_LABELS = {
     IntelSourceType.UCAS: "UCAS",
     IntelSourceType.UNIVERSITY_SITE: "海外大学官网",
+    IntelSourceType.EXAM_BOARD: "考试局",
+    IntelSourceType.VISA_POLICY: "签证政策",
     IntelSourceType.WECHAT_MEDIA: "媒体公众号",
 }
 
@@ -72,7 +75,7 @@ def build_overview_sections(items: Iterable[IntelItem]) -> list[IntelOverviewSec
         grouped.setdefault(item.source_type, []).append(item)
 
     sections: list[IntelOverviewSection] = []
-    for source_type, source_label in SOURCE_LABELS.items():
+    for source_type, source_label in OFFICIAL_SOURCE_LABELS.items():
         source_items = grouped.get(source_type, [])
         sections.append(
             IntelOverviewSection(
@@ -115,29 +118,69 @@ async def load_xiaohongshu_items(limit: int = 20) -> list[IntelItem]:
     except RuntimeError:
         return []
 
+    cursor = collection.find({}).sort("collected_at", -1).limit(limit)
+    raw_rows = await cursor.to_list(length=limit)
+
+    return [note_to_intel_item(Note(**row)) for row in raw_rows]
+
+
+async def load_live_source_items(source_key: str, limit: int = 20) -> list[IntelItem]:
+    """从统一 intel_items 集合读取实时来源数据。"""
+
+    try:
+        collection = mongodb.get_collection("intel_items")
+    except RuntimeError:
+        return []
+
     cursor = (
-        collection.find({})
-        .sort("collected_at", -1)
+        collection.find({"source_type": source_key})
+        .sort("published_at", -1)
         .limit(limit)
     )
     raw_rows = await cursor.to_list(length=limit)
 
-    return [note_to_intel_item(Note(**row)) for row in raw_rows]
+    return [IntelItem(**row) for row in raw_rows]
+
+
+async def load_live_source_sync_reports(
+    source_key: str,
+) -> list[IntelSourceSyncReport]:
+    """从同步结果集合读取指定来源的最近状态。"""
+
+    try:
+        collection = mongodb.get_collection("intel_source_syncs")
+    except RuntimeError:
+        return []
+
+    cursor = collection.find({"source_type": source_key}).sort("school_name", 1)
+    raw_rows = await cursor.to_list(length=None)
+
+    return [IntelSourceSyncReport(**row) for row in raw_rows]
 
 
 async def build_overview_feed(seed_path: Path, live_limit: int = 20) -> list[IntelItem]:
     """构建总览页所需的统一情报流"""
 
     fixture_items = load_fixture_items(seed_path)
-    live_xhs_items = await load_xiaohongshu_items(limit=live_limit)
-    non_xhs_fixture_items = [
-        item for item in fixture_items if item.source_type != IntelSourceType.XIAOHONGSHU
+
+    filtered_fixture_items = [
+        item
+        for item in fixture_items
+        if item.source_type != IntelSourceType.XIAOHONGSHU
     ]
 
-    if live_xhs_items:
-        return live_xhs_items + non_xhs_fixture_items
+    items: list[IntelItem] = []
+    for source_type in OFFICIAL_SOURCE_LABELS:
+        source_key = source_type.value
+        live_items = await load_live_source_items(source_key, limit=live_limit)
+        scoped_live_items = [
+            item for item in live_items if item.source_type.value == source_key
+        ]
+        items.extend(
+            scoped_live_items or build_source_feed(filtered_fixture_items, source_key)
+        )
 
-    return fixture_items
+    return items
 
 
 def build_source_feed(items: Iterable[IntelItem], source_key: str) -> list[IntelItem]:
