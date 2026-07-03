@@ -79,6 +79,8 @@ class Settings(BaseSettings):
     SENTIMENT_API_KEY: str = ""
     SENTIMENT_MODEL: str = "MiniMax-Text-01"
     SENTIMENT_BATCH_SIZE: int = 20
+    # 每轮分析的上限（循环抽干积压，但设天花板防止单轮 LLM 调用过多）
+    SENTIMENT_MAX_PER_RUN: int = 400
     SENTIMENT_CACHE_TTL: int = 3600
 
     # ---------- 舆情预警 ----------

@@ -31,7 +31,13 @@ from src.websocket.manager import websocket_manager
 
 logger = logging.getLogger(__name__)
 
-scheduler = AsyncIOScheduler()
+# timezone=UTC：代码里的 next_run_time 用 datetime.utcnow()（朴素 UTC），
+#   必须让调度器也按 UTC 解释，否则会被当成本机时区（CST）导致任务"过期"跳过。
+# misfire_grace_time：任务晚到 5 分钟内仍执行；coalesce：多次错过只补跑一次。
+scheduler = AsyncIOScheduler(
+    timezone="UTC",
+    job_defaults={"misfire_grace_time": 300, "coalesce": True},
+)
 _collector = DataCollector()
 
 
@@ -95,6 +101,7 @@ async def analyze_sentiment() -> None:
     senta = get_sentiment_service()
     batch_size = settings.SENTIMENT_BATCH_SIZE
 
+    max_per_run = settings.SENTIMENT_MAX_PER_RUN
     await _analyze_collection(
         "notes",
         text_builder=lambda d: f"{d.get('title','')} {d.get('content','')}".strip(),
@@ -104,6 +111,7 @@ async def analyze_sentiment() -> None:
         alert_eval=lambda doc: alert_service.evaluate_note(doc),
         senta=senta,
         batch_size=batch_size,
+        max_docs=max_per_run,
     )
     await _analyze_collection(
         "comments",
@@ -112,6 +120,7 @@ async def analyze_sentiment() -> None:
         alert_eval=lambda doc: alert_service.evaluate_comment(doc),
         senta=senta,
         batch_size=batch_size,
+        max_docs=max_per_run,
     )
 
 
@@ -123,50 +132,67 @@ async def _analyze_collection(  # noqa: PLR0913
     alert_eval,
     senta,
     batch_size: int,
+    max_docs: int,
 ) -> None:
-    """批处理一个集合内缺失 sentiment 的文档"""
+    """循环抽干集合内缺失 sentiment 的文档，最多处理 max_docs 条。
+
+    按 ``collected_at`` 倒序：最新采集的先分析，保证近期舆情始终是最新的。
+    """
     coll = mongodb.get_collection(collection_name)
-    cursor = coll.find({"sentiment": {"$exists": False}}).limit(batch_size)
-    docs: List[Dict[str, Any]] = [d async for d in cursor]
-    if not docs:
-        return
-
     id_field = "note_id" if collection_name == "notes" else "comment_id"
-    _neutral = {"label": "neutral", "score": 0.5, "emotion": "neutral"}
+    neutral = {"label": "neutral", "score": 0.5, "emotion": "neutral"}
 
-    texts = [text_builder(d) for d in docs]
-    valid_indices = [i for i, t in enumerate(texts) if t.strip()]
-
-    # 空文本统一标中性，避免每轮重复扫描（含全空批次）
-    for idx, doc in enumerate(docs):
-        if idx not in set(valid_indices):
-            await coll.update_one(
-                {id_field: doc[id_field]}, {"$set": {"sentiment": _neutral}}
-            )
-    if not valid_indices:
-        return
-
-    results = senta.batch_analyze([texts[i] for i in valid_indices])
-    alerts = []
-    for idx, result in zip(valid_indices, results):
-        doc = docs[idx]
-        sentiment_doc = (
-            result.model_dump() if hasattr(result, "model_dump") else result.dict()
+    processed = 0
+    alerts_created = 0
+    while processed < max_docs:
+        cursor = (
+            coll.find({"sentiment": {"$exists": False}})
+            .sort("collected_at", -1)
+            .limit(batch_size)
         )
-        await coll.update_one(
-            {id_field: doc[id_field]}, {"$set": {"sentiment": sentiment_doc}}
-        )
-        if broadcast is not None:
-            await broadcast(doc, sentiment_doc)
-        alert = alert_eval({**doc, "sentiment": sentiment_doc})
-        if alert is not None:
-            alerts.append(alert)
+        docs: List[Dict[str, Any]] = [d async for d in cursor]
+        if not docs:
+            break
 
-    created = await alert_service.emit(alerts) if alerts else 0
-    logger.info(
-        "%s 情感分析完成 %d 条，触发告警 %d 条",
-        collection_name, len(valid_indices), created,
-    )
+        texts = [text_builder(d) for d in docs]
+        valid = [i for i, t in enumerate(texts) if t.strip()]
+        valid_set = set(valid)
+
+        # 空文本统一标中性（推进游标，避免死循环）
+        for i, doc in enumerate(docs):
+            if i not in valid_set:
+                await coll.update_one(
+                    {id_field: doc[id_field]}, {"$set": {"sentiment": neutral}}
+                )
+
+        if valid:
+            results = senta.batch_analyze([texts[i] for i in valid])
+            batch_alerts = []
+            for i, result in zip(valid, results):
+                doc = docs[i]
+                sdoc = (
+                    result.model_dump()
+                    if hasattr(result, "model_dump")
+                    else result.dict()
+                )
+                await coll.update_one(
+                    {id_field: doc[id_field]}, {"$set": {"sentiment": sdoc}}
+                )
+                if broadcast is not None:
+                    await broadcast(doc, sdoc)
+                alert = alert_eval({**doc, "sentiment": sdoc})
+                if alert is not None:
+                    batch_alerts.append(alert)
+            if batch_alerts:
+                alerts_created += await alert_service.emit(batch_alerts)
+
+        processed += len(docs)
+
+    if processed:
+        logger.info(
+            "%s 情感分析：本轮处理 %d 条，触发告警 %d 条",
+            collection_name, processed, alerts_created,
+        )
 
 
 async def scan_alerts_job() -> None:

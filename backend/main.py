@@ -2,7 +2,11 @@
 小红书舆情监控系统 - 主入口
 """
 import asyncio
+import logging
 from contextlib import asynccontextmanager
+
+# 让 src.* 的 INFO 日志可见（采集/分析/告警的执行情况）
+logging.basicConfig(level=logging.INFO)
 
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
