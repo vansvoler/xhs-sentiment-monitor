@@ -1,18 +1,25 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Bell, Check, TrendingUp } from "lucide-react";
 
-import type { Alert, AlertLevel, AlertType, WsMessage } from "@/types";
+import type {
+  Alert,
+  AlertLevel,
+  AlertType,
+  CategoryType,
+  KeywordConfig,
+  WsMessage,
+} from "@/types";
 import { fetchAlerts, acknowledgeAlert } from "@/lib/api";
 import { useWebSocket } from "@/lib/websocket";
 import { formatRelative } from "@/lib/utils";
 
 // 级别 → 配色（左边框 / 文字 / 背景）
-const LEVEL_STYLE: Record<AlertLevel, { bar: string; text: string; bg: string; label: string }> = {
-  critical: { bar: "#dc2626", text: "#dc2626", bg: "rgba(239,68,68,0.06)", label: "紧急" },
-  warning: { bar: "#e08a1e", text: "#b45309", bg: "rgba(245,158,11,0.06)", label: "警告" },
-  info: { bar: "#1e51a2", text: "#6f94cd", bg: "rgba(30,81,162,0.06)", label: "提示" },
+const LEVEL_STYLE: Record<AlertLevel, { bar: string; text: string; bg: string }> = {
+  critical: { bar: "#dc2626", text: "#dc2626", bg: "rgba(239,68,68,0.06)" },
+  warning: { bar: "#e08a1e", text: "#b45309", bg: "rgba(245,158,11,0.06)" },
+  info: { bar: "#1e51a2", text: "#6f94cd", bg: "rgba(30,81,162,0.06)" },
 };
 
 const TYPE_ICON: Record<AlertType, typeof AlertTriangle> = {
@@ -22,11 +29,20 @@ const TYPE_ICON: Record<AlertType, typeof AlertTriangle> = {
   volume_spike: TrendingUp,
 };
 
-const MAX_ITEMS = 30;
+type CatFilter = CategoryType | "all";
+const CAT_TABS: { key: CatFilter; label: string }[] = [
+  { key: "all", label: "全部" },
+  { key: "brand", label: "品牌" },
+  { key: "competitor", label: "竞品" },
+  { key: "industry", label: "行业" },
+];
 
-export function AlertPanel() {
+const MAX_ITEMS = 60;
+
+export function AlertPanel({ keywordConfig }: { keywordConfig: KeywordConfig | null }) {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cat, setCat] = useState<CatFilter>("all");
 
   useEffect(() => {
     fetchAlerts({ limit: MAX_ITEMS })
@@ -35,7 +51,6 @@ export function AlertPanel() {
       .finally(() => setLoading(false));
   }, []);
 
-  // 实时推送：去重后置顶
   const handleMessage = useCallback((msg: WsMessage) => {
     if (msg.type !== "alert") return;
     const incoming = msg.data as Alert;
@@ -53,11 +68,38 @@ export function AlertPanel() {
     await acknowledgeAlert(id).catch(() => {});
   }, []);
 
+  // 关键词 → 分类映射（用于把每条预警归到品牌/竞品/行业）
+  const kwCat = useMemo(() => {
+    const m = new Map<string, CategoryType>();
+    if (keywordConfig) {
+      for (const k of keywordConfig.brand) m.set(k, "brand");
+      for (const k of keywordConfig.competitor) m.set(k, "competitor");
+      for (const k of keywordConfig.industry) m.set(k, "industry");
+    }
+    return m;
+  }, [keywordConfig]);
+
+  const catOf = useCallback(
+    (a: Alert): CatFilter => (a.keyword ? kwCat.get(a.keyword) ?? "all" : "all"),
+    [kwCat],
+  );
+
+  // 各分类条数（用于 tab 徽标）
+  const counts = useMemo(() => {
+    const c: Record<CatFilter, number> = { all: alerts.length, brand: 0, competitor: 0, industry: 0 };
+    for (const a of alerts) {
+      const k = catOf(a);
+      if (k !== "all") c[k] += 1;
+    }
+    return c;
+  }, [alerts, catOf]);
+
+  const visible = cat === "all" ? alerts : alerts.filter((a) => catOf(a) === cat);
   const openCount = alerts.filter((a) => a.status === "open").length;
 
   return (
     <div>
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         <Bell size={14} className="text-[#e08a1e]" aria-hidden="true" />
         <span className="text-sm font-medium text-[#1f2a44]">舆情预警</span>
         {openCount > 0 && (
@@ -65,15 +107,40 @@ export function AlertPanel() {
             {openCount}
           </span>
         )}
+        {/* 分类子标签 */}
+        {!loading && alerts.length > 0 && (
+          <div className="ml-auto flex items-center gap-1">
+            {CAT_TABS.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setCat(t.key)}
+                className={`rounded px-2 py-0.5 text-xs transition-colors ${
+                  cat === t.key
+                    ? "bg-[#1e51a2] text-white"
+                    : "text-[#7b8494] hover:bg-[#eef2f8] hover:text-[#1f2a44]"
+                }`}
+              >
+                {t.label}
+                <span className={cat === t.key ? "opacity-80" : "text-[#9aa1ac]"}> {counts[t.key]}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {loading ? (
         <div className="h-[120px] animate-pulse rounded bg-[#eaeef4]" />
       ) : alerts.length === 0 ? (
         <p className="py-1 text-xs text-[#16a34a]">舆情平稳 · 暂无预警 ✓</p>
+      ) : visible.length === 0 ? (
+        <p className="py-4 text-center text-xs text-[#7b8494]">该分类暂无预警</p>
       ) : (
-        <div className="space-y-2" aria-live="polite" aria-label="舆情预警列表">
-          {alerts.map((a) => (
+        <div
+          className="max-h-[320px] space-y-2 overflow-y-auto pr-1"
+          aria-live="polite"
+          aria-label="舆情预警列表"
+        >
+          {visible.map((a) => (
             <AlertRow key={a.alert_id} alert={a} onAck={handleAck} />
           ))}
         </div>

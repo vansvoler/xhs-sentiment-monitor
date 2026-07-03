@@ -147,7 +147,7 @@ export function XhsSentimentDashboard() {
           <CardContent className="space-y-3 pt-4">
             <MetricStrip summary={summary} loading={loading.overview} />
             <div className="border-t border-[#eaeef4] pt-3">
-              <AlertPanel />
+              <AlertPanel keywordConfig={keywordConfig} />
             </div>
           </CardContent>
         </Card>
