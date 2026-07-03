@@ -100,7 +100,7 @@ export function KolDiscovery() {
         <div className="mx-auto flex max-w-screen-2xl items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
-              href="/dashboard/legacy"
+              href="/dashboard"
               className="flex items-center gap-1 text-xs text-[#7b8494] hover:text-[#1f2a44]"
             >
               <ArrowLeft size={14} /> 返回舆情

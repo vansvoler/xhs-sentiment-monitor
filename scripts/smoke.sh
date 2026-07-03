@@ -35,12 +35,12 @@ echo "运行本地 smoke test..."
 
 assert_http_ok "http://localhost:3000/dashboard" "前端 dashboard 可访问"
 assert_json_contains \
-  "http://localhost:8000/api/intel/overview" \
-  "\"sections\"" \
-  "后端 overview 返回分区数据"
+  "http://localhost:8000/api/notes/stats/summary" \
+  "\"total_notes\"" \
+  "后端笔记统计接口可用"
 assert_json_contains \
-  "http://localhost:8000/api/intel/sources/university_site/sync-status" \
-  "\"source_key\":\"university_site\"" \
-  "大学官网同步状态接口可用"
+  "http://localhost:8000/api/config/keywords" \
+  "\"brand\"" \
+  "监控关键词接口可用"
 
 echo "Smoke test 通过。"

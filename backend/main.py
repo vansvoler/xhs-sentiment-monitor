@@ -13,7 +13,6 @@ from src.api import (
     comments,
     competitors,
     config,
-    intel,
     kol,
     notes,
     sentiment,
@@ -80,7 +79,6 @@ app.include_router(sentiment.router, prefix="/api/sentiment", tags=["情感分�
 app.include_router(trends.router, prefix="/api/trends", tags=["趋势分析"])
 app.include_router(competitors.router, prefix="/api/competitors", tags=["竞品分析"])
 app.include_router(config.router, prefix="/api/config", tags=["配置"])
-app.include_router(intel.router, prefix="/api/intel", tags=["运营情报"])
 app.include_router(alerts.router, prefix="/api/alerts", tags=["舆情预警"])
 app.include_router(kol.router, prefix="/api/kol", tags=["KOL挖掘"])
 

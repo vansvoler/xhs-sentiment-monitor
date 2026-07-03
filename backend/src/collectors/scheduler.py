@@ -4,9 +4,8 @@
 周期性任务：
 - collect_keywords    关键词 → 搜索 → 详情 → 入库 → 推送新笔记
 - collect_comments    已采笔记 → 拉评论 → 入库
-- analyze_sentiment   未分析的 notes/comments → Senta → 回写 → 推送
-- collect_ucas_news   UCAS 官方动态 → intel_items
-- collect_university_news 海外大学官网动态 → intel_items
+- analyze_sentiment   未分析的 notes/comments → Senta → 回写 → 推送；判负即告警
+- scan_alerts         按关键词扫负面率/声量突增 → alerts
 """
 
 from __future__ import annotations
@@ -23,12 +22,10 @@ from apscheduler.triggers.interval import (  # type: ignore[import-untyped]
 )
 
 from src.analyzers.senta_service import get_sentiment_service
-from src.collectors.university_sources import load_intel_sources
 from src.collectors.xhs_api import DataCollector
 from src.config import settings
 from src.db.mongodb import mongodb
 from src.services.alert_service import alert_service
-from src.services.intel_ingest import sync_ucas_news, sync_university_news
 from src.services.keyword_config import keyword_config
 from src.websocket.manager import websocket_manager
 
@@ -172,23 +169,6 @@ async def _analyze_collection(  # noqa: PLR0913
     )
 
 
-async def collect_university_news_job() -> None:
-    """同步海外大学官网新闻情报。
-
-    每次触发都从 ``intel_sources.json`` 重新读取信源列表，使得通过 API 动态新增的
-    信源在下一轮即可生效，无需重启进程。
-    """
-
-    try:
-        sources = load_intel_sources()
-        count = await sync_university_news(sources)
-    except Exception as e:
-        logger.exception("大学新闻同步异常: %s", e)
-        return
-
-    logger.info("大学新闻同步完成，共写入 %d 条（信源数 %d）", count, len(sources))
-
-
 async def scan_alerts_job() -> None:
     """周期扫描关键词负面率 / 声量突增，产出告警。"""
     try:
@@ -198,18 +178,6 @@ async def scan_alerts_job() -> None:
         logger.exception("舆情告警扫描异常: %s", e)
         return
     logger.info("舆情告警扫描完成，检出 %d 条，新增 %d 条", len(alerts), created)
-
-
-async def collect_ucas_news_job() -> None:
-    """同步 UCAS 官方新闻情报。"""
-
-    try:
-        count = await sync_ucas_news()
-    except Exception as e:
-        logger.exception("UCAS 新闻同步异常: %s", e)
-        return
-
-    logger.info("UCAS 新闻同步完成，共写入 %d 条", count)
 
 
 # ================ 调度控制 ================
@@ -247,22 +215,6 @@ def start_scheduler() -> None:
         name="舆情告警扫描",
         replace_existing=True,
         next_run_time=datetime.utcnow() + timedelta(seconds=50),
-    )
-    scheduler.add_job(
-        collect_ucas_news_job,
-        trigger=IntervalTrigger(minutes=60),
-        id="collect_ucas_news",
-        name="UCAS 新闻同步",
-        replace_existing=True,
-        next_run_time=datetime.utcnow() + timedelta(seconds=40),
-    )
-    scheduler.add_job(
-        collect_university_news_job,
-        trigger=IntervalTrigger(minutes=60),
-        id="collect_university_news",
-        name="大学新闻同步",
-        replace_existing=True,
-        next_run_time=datetime.utcnow() + timedelta(seconds=45),
     )
     scheduler.start()
     logger.info("任务调度器已启动")

@@ -3,4 +3,3 @@ export * from "./note";
 export * from "./alert";
 export * from "./kol";
 export * from "./ws";
-export * from "./intel";
