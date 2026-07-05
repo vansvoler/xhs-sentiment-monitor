@@ -30,8 +30,10 @@ class Settings(BaseSettings):
     # ---------- 采集 ----------
     COLLECT_INTERVAL_MINUTES: int = 30
     MAX_NOTES_PER_PAGE: int = 20  # TikHub 一页固定 20 条
-    MAX_COMMENTS_PER_NOTE: int = 100
-    COMMENTS_REFRESH_HOURS: int = 6  # 每条笔记评论刷新间隔
+    # 评论采集是 TikHub 额度大头，以下三项控制成本：
+    MAX_COMMENTS_PER_NOTE: int = 20   # 每篇只拉头部 1 页，足够看舆情
+    COMMENTS_REFRESH_HOURS: int = 48  # 评论变化慢，刷新间隔放长
+    COMMENT_MAX_AGE_DAYS: int = 14    # 只给近 N 天发布的笔记拉评论，老笔记不反复烧
 
     # ---------- 监控目标 ----------
     MONITOR_KEYWORDS: List[str] = []   # 已废弃，保留向后兼容

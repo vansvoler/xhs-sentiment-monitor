@@ -67,17 +67,20 @@ async def collect_keywords() -> None:
 
 # ================ 任务 2: 评论采集 ================
 async def collect_comments() -> None:
-    """为需要刷新评论的笔记拉评论"""
-    threshold = datetime.utcnow() - timedelta(hours=settings.COMMENTS_REFRESH_HOURS)
+    """为需要刷新评论的笔记拉评论（仅近 N 天发布的，控制 TikHub 成本）"""
+    now = datetime.utcnow()
+    threshold = now - timedelta(hours=settings.COMMENTS_REFRESH_HOURS)
+    recent = now - timedelta(days=settings.COMMENT_MAX_AGE_DAYS)
     notes_coll = mongodb.get_collection("notes")
 
-    # 找出 comments_collected_at 缺失 或 早于阈值 的笔记
+    # 仅近 N 天发布 + comments_collected_at 缺失/过期的笔记；老笔记不再反复拉评论
     cursor = notes_coll.find(
         {
+            "published_at": {"$gte": recent},
             "$or": [
                 {"comments_collected_at": {"$exists": False}},
                 {"comments_collected_at": {"$lt": threshold}},
-            ]
+            ],
         },
         {"note_id": 1},
     ).limit(20)
