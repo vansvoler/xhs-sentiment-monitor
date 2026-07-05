@@ -55,7 +55,26 @@ class DataCollector:
             logger.error("关键词 %s 搜索失败: %s", keyword, e)
             return []
 
-        notes = [n for n in notes if n.get("note_id")][:limit]
+        notes = [n for n in notes if n.get("note_id")]
+
+        # 相关性过滤：小红书搜索是模糊/同音匹配，time_descending 会捞进大量沾边噪声
+        # （如"澜大"匹配到"兰大"）。只留标题/正文/标签里真正出现关键词的笔记。
+        if settings.SEARCH_REQUIRE_KEYWORD_MATCH:
+            kw = keyword.lower()
+            kept = []
+            for n in notes:
+                blob = (
+                    f"{n.get('title', '')} {n.get('content', '')} "
+                    f"{' '.join(n.get('tags', []))}"
+                ).lower()
+                if kw in blob:
+                    kept.append(n)
+            dropped = len(notes) - len(kept)
+            if dropped:
+                logger.info("关键词 %s 过滤无关笔记 %d 条", keyword, dropped)
+            notes = kept
+
+        notes = notes[:limit]
         for n in notes:
             n["category"] = category  # brand / competitor / industry
 

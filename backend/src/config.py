@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     MAX_NOTES_PER_PAGE: int = 20  # TikHub 一页固定 20 条
     # 搜索排序：time_descending=最新优先（抓新舆情）；general=综合/热门
     SEARCH_SORT_TYPE: str = "time_descending"
+    # 入库前只留标题/正文/标签真正含关键词的笔记（过滤模糊/同音匹配噪声）
+    SEARCH_REQUIRE_KEYWORD_MATCH: bool = True
     MAX_COMMENTS_PER_NOTE: int = 20  # 每篇只拉头部 1 页，足够看舆情
     # 评论只抓这些分类的笔记（竞品不抓）
     COMMENT_CATEGORIES: List[str] = ["brand", "industry"]
