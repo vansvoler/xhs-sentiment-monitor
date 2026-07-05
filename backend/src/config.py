@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     MAX_COMMENTS_PER_NOTE: int = 20  # 每篇只拉头部 1 页，足够看舆情
     # 评论只抓这些分类的笔记（竞品不抓）
     COMMENT_CATEGORIES: List[str] = ["brand", "industry"]
+    # 笔记采集满 N 小时后才拉评论（给评论累积时间），采一次不刷新
+    COMMENT_DELAY_HOURS: int = 24
 
     # ---------- 监控目标 ----------
     MONITOR_KEYWORDS: List[str] = []   # 已废弃，保留向后兼容

@@ -70,15 +70,18 @@ async def collect_comments() -> None:
     """只为新增的品牌/行业笔记拉一次评论。
 
     - 竞品笔记不抓评论（``COMMENT_CATEGORIES`` 控制）。
+    - 笔记采集满 ``COMMENT_DELAY_HOURS`` 小时后才拉评论（给评论累积时间）。
     - 只抓从未采过评论的笔记（``comments_collected_at`` 缺失），采一次即止、不刷新；
       历史笔记在部署时已统一标记为"已采"，因此只有后续新增的笔记会命中。
     """
     notes_coll = mongodb.get_collection("notes")
+    ready = datetime.utcnow() - timedelta(hours=settings.COMMENT_DELAY_HOURS)
 
     cursor = notes_coll.find(
         {
             "comments_collected_at": {"$exists": False},
             "category": {"$in": settings.COMMENT_CATEGORIES},
+            "collected_at": {"$lte": ready},
         },
         {"note_id": 1},
     ).limit(20)
