@@ -69,7 +69,7 @@ async def collect_keywords() -> None:
 async def collect_comments() -> None:
     """只为新增的品牌/行业笔记拉一次评论。
 
-    - 竞品笔记不抓评论（``COMMENT_CATEGORIES`` 控制）。
+    - 抓 ``COMMENT_CATEGORIES`` 内分类（品牌/竞品/行业）的笔记评论。
     - 笔记采集满 ``COMMENT_DELAY_HOURS`` 小时后才拉评论（给评论累积时间）。
     - 评论数低于 ``COMMENT_MIN_COMMENTS`` 的笔记跳过（零评论没舆情可看，省调用）。
     - 只抓从未采过评论的笔记（``comments_collected_at`` 缺失），采一次即止、不刷新；

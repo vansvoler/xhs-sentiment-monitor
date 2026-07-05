@@ -35,8 +35,8 @@ class Settings(BaseSettings):
     # 入库前只留标题/正文/标签真正含关键词的笔记（过滤模糊/同音匹配噪声）
     SEARCH_REQUIRE_KEYWORD_MATCH: bool = True
     MAX_COMMENTS_PER_NOTE: int = 20  # 每篇只拉头部 1 页，足够看舆情
-    # 评论只抓这些分类的笔记（竞品不抓）
-    COMMENT_CATEGORIES: List[str] = ["brand", "industry"]
+    # 评论抓取的分类（品牌/竞品/行业全抓，规则一致）
+    COMMENT_CATEGORIES: List[str] = ["brand", "competitor", "industry"]
     # 笔记采集满 N 小时后才拉评论（给评论累积时间），采一次不刷新
     COMMENT_DELAY_HOURS: int = 24
     # 评论数低于该值的笔记不拉评论（省调用，零评论没舆情可看）
