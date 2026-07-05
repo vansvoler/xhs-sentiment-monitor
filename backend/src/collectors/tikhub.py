@@ -226,7 +226,10 @@ class XHSAdapter:
         app/search_notes → data.data.items[]
         endpoint 有"冷启动首次 400"已知问题，调用前由 TikHubClient 做一次重试。
         """
-        resp = await self._http.get(_SEARCH_PATH, {"keyword": keyword, "page": page})
+        resp = await self._http.get(
+            _SEARCH_PATH,
+            {"keyword": keyword, "page": page, "sort_type": settings.SEARCH_SORT_TYPE},
+        )
         outer = resp.get("data") or {}
         # app API 结构: resp.data.code/success/data.items
         inner = outer.get("data") if isinstance(outer, dict) else None

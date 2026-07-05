@@ -30,11 +30,15 @@ class Settings(BaseSettings):
     # ---------- 采集 ----------
     COLLECT_INTERVAL_MINUTES: int = 240  # 4 小时采一次，控制 TikHub 成本
     MAX_NOTES_PER_PAGE: int = 20  # TikHub 一页固定 20 条
+    # 搜索排序：time_descending=最新优先（抓新舆情）；general=综合/热门
+    SEARCH_SORT_TYPE: str = "time_descending"
     MAX_COMMENTS_PER_NOTE: int = 20  # 每篇只拉头部 1 页，足够看舆情
     # 评论只抓这些分类的笔记（竞品不抓）
     COMMENT_CATEGORIES: List[str] = ["brand", "industry"]
     # 笔记采集满 N 小时后才拉评论（给评论累积时间），采一次不刷新
     COMMENT_DELAY_HOURS: int = 24
+    # 评论数低于该值的笔记不拉评论（省调用，零评论没舆情可看）
+    COMMENT_MIN_COMMENTS: int = 1
 
     # ---------- 监控目标 ----------
     MONITOR_KEYWORDS: List[str] = []   # 已废弃，保留向后兼容

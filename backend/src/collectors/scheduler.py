@@ -71,6 +71,7 @@ async def collect_comments() -> None:
 
     - 竞品笔记不抓评论（``COMMENT_CATEGORIES`` 控制）。
     - 笔记采集满 ``COMMENT_DELAY_HOURS`` 小时后才拉评论（给评论累积时间）。
+    - 评论数低于 ``COMMENT_MIN_COMMENTS`` 的笔记跳过（零评论没舆情可看，省调用）。
     - 只抓从未采过评论的笔记（``comments_collected_at`` 缺失），采一次即止、不刷新；
       历史笔记在部署时已统一标记为"已采"，因此只有后续新增的笔记会命中。
     """
@@ -82,6 +83,7 @@ async def collect_comments() -> None:
             "comments_collected_at": {"$exists": False},
             "category": {"$in": settings.COMMENT_CATEGORIES},
             "collected_at": {"$lte": ready},
+            "stats.comments": {"$gte": settings.COMMENT_MIN_COMMENTS},
         },
         {"note_id": 1},
     ).limit(20)
