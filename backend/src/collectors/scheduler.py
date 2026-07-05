@@ -67,20 +67,18 @@ async def collect_keywords() -> None:
 
 # ================ 任务 2: 评论采集 ================
 async def collect_comments() -> None:
-    """为需要刷新评论的笔记拉评论（仅近 N 天发布的，控制 TikHub 成本）"""
-    now = datetime.utcnow()
-    threshold = now - timedelta(hours=settings.COMMENTS_REFRESH_HOURS)
-    recent = now - timedelta(days=settings.COMMENT_MAX_AGE_DAYS)
+    """只为新增的品牌/行业笔记拉一次评论。
+
+    - 竞品笔记不抓评论（``COMMENT_CATEGORIES`` 控制）。
+    - 只抓从未采过评论的笔记（``comments_collected_at`` 缺失），采一次即止、不刷新；
+      历史笔记在部署时已统一标记为"已采"，因此只有后续新增的笔记会命中。
+    """
     notes_coll = mongodb.get_collection("notes")
 
-    # 仅近 N 天发布 + comments_collected_at 缺失/过期的笔记；老笔记不再反复拉评论
     cursor = notes_coll.find(
         {
-            "published_at": {"$gte": recent},
-            "$or": [
-                {"comments_collected_at": {"$exists": False}},
-                {"comments_collected_at": {"$lt": threshold}},
-            ],
+            "comments_collected_at": {"$exists": False},
+            "category": {"$in": settings.COMMENT_CATEGORIES},
         },
         {"note_id": 1},
     ).limit(20)
