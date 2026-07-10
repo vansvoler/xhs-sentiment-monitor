@@ -5,7 +5,9 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LOG_DIR="$ROOT_DIR/logs"
 BACKEND_LOG="$LOG_DIR/backend-dev.log"
 FRONTEND_LOG="$LOG_DIR/frontend-dev.log"
-BACKEND_URL="http://localhost:8000/api/intel/overview"
+# 探活用 /health（后端自带、不随业务路由增删而失效），
+# 别指向业务接口——分支上功能没做完时会误判后端已死并连带杀掉前端。
+BACKEND_URL="http://localhost:8000/health"
 FRONTEND_URL="http://localhost:3000/dashboard"
 
 mkdir -p "$LOG_DIR"
