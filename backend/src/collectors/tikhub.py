@@ -1,10 +1,10 @@
 """
 TikHub XHS API 客户端
 
-三个固定端点：
-  搜索  GET /api/v1/xiaohongshu/app/search_notes
-  详情  GET /api/v1/xiaohongshu/web_v2/fetch_feed_notes_v2
-  评论  GET /api/v1/xiaohongshu/web_v2/fetch_note_comments
+三个固定端点（TikHub 已下线 app / web / web_v2 全系，一律走 app_v2）：
+  搜索      GET /api/v1/xiaohongshu/app_v2/search_notes
+  用户信息  GET /api/v1/xiaohongshu/app_v2/get_user_info
+  评论      GET /api/v1/xiaohongshu/app_v2/get_note_comments
 
 域名 failover：先试 TIKHUB_BASE_URL（api.tikhub.dev），
 400/502/504 后切 TIKHUB_FALLBACK_BASE_URL（api.tikhub.io）。
@@ -95,7 +95,7 @@ def _extract_media(note: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def _norm_note(note: Dict[str, Any], user: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """通用笔记归一化；user 可从外层传入（fetch_feed_notes_v2 格式）"""
+    """通用笔记归一化；user 可从外层传入"""
     author_raw = user or note.get("user") or {}
     return {
         "note_id":      note.get("id") or note.get("note_id") or "",
@@ -131,6 +131,26 @@ def _norm_comment(raw: Dict[str, Any], note_id: str) -> Dict[str, Any]:
 # HTTP 层（带域名 failover）
 # ===================================================================
 
+def _detail_of(body: Any) -> str:
+    """把 TikHub 的错误体压成一行可读文本。
+
+    detail 有三种形态：
+      dict  业务错误      {"detail": {"request_id": "...", ...}}
+      str   路由/网关错误 {"detail": "Not Found"}
+      list  参数校验错误  {"detail": [{"loc": [...], "msg": "..."}]}
+    """
+    if not isinstance(body, dict):
+        return f"body={type(body).__name__}"
+    detail = body.get("detail")
+    if isinstance(detail, dict):
+        return f"req_id={detail.get('request_id', '')}"
+    if isinstance(detail, str):
+        return f"detail={detail!r}"
+    if isinstance(detail, list):
+        return f"detail={detail!r:.200}"
+    return f"req_id={body.get('request_id', '')}"
+
+
 class _Http:
     """aiohttp 封装 + dev→io failover"""
 
@@ -156,10 +176,10 @@ class _Http:
                             f"认证失败 ({resp.status}): {url}"
                         )
                     if resp.status >= 400 or (isinstance(body, dict) and "detail" in body):
-                        req_id = (body.get("detail") or {}).get("request_id", "") \
-                                 if isinstance(body, dict) else ""
+                        # detail 可能是 dict / str / list，只认 dict 会崩在这里
+                        # 并吞掉真实错因，故统一交给 _detail_of 处理
                         last_err = TikHubRetriableError(
-                            f"HTTP {resp.status} {url} req_id={req_id}"
+                            f"HTTP {resp.status} {url} {_detail_of(body)}"
                         )
                         logger.warning("尝试 %s 失败，切换域名: %s", domain, last_err)
                         continue
@@ -182,10 +202,9 @@ class _Http:
 # XHS 适配器（三个固定端点）
 # ===================================================================
 
-_SEARCH_PATH   = "/api/v1/xiaohongshu/app/search_notes"
-_DETAIL_PATH   = "/api/v1/xiaohongshu/web_v2/fetch_feed_notes_v2"
-_COMMENTS_PATH = "/api/v1/xiaohongshu/web_v2/fetch_note_comments"
-_USER_INFO_PATH = "/api/v1/xiaohongshu/web_v2/fetch_user_info_app"
+_SEARCH_PATH    = "/api/v1/xiaohongshu/app_v2/search_notes"
+_COMMENTS_PATH  = "/api/v1/xiaohongshu/app_v2/get_note_comments"
+_USER_INFO_PATH = "/api/v1/xiaohongshu/app_v2/get_user_info"
 
 
 def _norm_user_info(data: Dict[str, Any]) -> Dict[str, Any]:
@@ -223,7 +242,7 @@ class XHSAdapter:
     # ---- 搜索 ----
     async def search_notes(self, keyword: str, page: int = 1) -> List[Dict[str, Any]]:
         """
-        app/search_notes → data.data.items[]
+        app_v2/search_notes → data.data.items[]
         endpoint 有"冷启动首次 400"已知问题，调用前由 TikHubClient 做一次重试。
         """
         resp = await self._http.get(
@@ -246,31 +265,14 @@ class XHSAdapter:
                 results.append(norm)
         return results
 
-    # ---- 详情 ----
-    async def get_note_detail(self, note_id: str) -> Dict[str, Any]:
-        """
-        web_v2/fetch_feed_notes_v2 → data.note_list[0]，用户在 data.user
-        """
-        resp = await self._http.get(_DETAIL_PATH, {"note_id": note_id})
-        data = resp.get("data") or {}
-        if not isinstance(data, dict):
-            raise TikHubRetriableError(f"fetch_feed_notes_v2 data 异常: {type(data).__name__}")
-        note_list = data.get("note_list") or []
-        if not note_list:
-            raise TikHubRetriableError(f"fetch_feed_notes_v2 note_list 为空, note_id={note_id}")
-        note = note_list[0]
-        # user 优先用外层（更完整），fallback note 内嵌
-        user = data.get("user") or note.get("user") or {}
-        return _norm_note(note, user=user)
-
     # ---- 用户信息 ----
     async def get_user_info(self, user_id: str) -> Dict[str, Any]:
-        """web_v2/fetch_user_info_app → 归一化的粉丝/认证/简介/地区"""
+        """app_v2/get_user_info → 归一化的粉丝/认证/简介/地区"""
         resp = await self._http.get(_USER_INFO_PATH, {"user_id": user_id})
         data = resp.get("data") or {}
         if not isinstance(data, dict):
             raise TikHubRetriableError(
-                f"fetch_user_info_app data 异常: {type(data).__name__}"
+                f"get_user_info data 异常: {type(data).__name__}"
             )
         return _norm_user_info(data)
 
@@ -279,7 +281,7 @@ class XHSAdapter:
         self, note_id: str, cursor: str = ""
     ) -> Tuple[List[Dict[str, Any]], str]:
         """
-        web_v2/fetch_note_comments → data.comments + data.cursor（JSON 字符串）
+        app_v2/get_note_comments → data.comments + data.cursor（JSON 字符串）
         """
         resp = await self._http.get(
             _COMMENTS_PATH, {"note_id": note_id, "cursor": cursor}
@@ -299,7 +301,7 @@ class XHSAdapter:
 # ===================================================================
 
 class TikHubClient:
-    """业务接口；app/search_notes 首次 400 时自动重试一次"""
+    """业务接口；app_v2/search_notes 首次 400 时自动重试一次"""
 
     def __init__(self) -> None:
         self._session: Optional[aiohttp.ClientSession] = None
@@ -318,7 +320,7 @@ class TikHubClient:
             self._adapter = None
 
     async def search_notes(self, keyword: str, page: int = 1) -> List[Dict[str, Any]]:
-        """app/search_notes 有冷启动 400 问题，最多重试 3 次，间隔递增"""
+        """app_v2/search_notes 有冷启动 400 问题，最多重试 3 次，间隔递增"""
         adapter = await self._ensure_ready()
         for attempt in range(3):
             try:
@@ -331,10 +333,6 @@ class TikHubClient:
                 else:
                     raise
         return []
-
-    async def get_note_detail(self, note_id: str) -> Dict[str, Any]:
-        adapter = await self._ensure_ready()
-        return await adapter.get_note_detail(note_id)
 
     async def get_user_info(self, user_id: str) -> Dict[str, Any]:
         adapter = await self._ensure_ready()
