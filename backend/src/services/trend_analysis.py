@@ -9,11 +9,16 @@
   笔记的 ``tags`` 在搜索接口下恒为空，不可用。
 """
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
+from src.db.filters import ON_TOPIC
 from src.db.mongodb import mongodb
 from src.models.note import TrendData
+
+# 日界按北京时间划分（库内时间为朴素 UTC，聚合时用 timezone 参数换算）
+_CST = timezone(timedelta(hours=8))
+_TZ = "+08:00"
 
 # 按天分桶的情感计数表达式
 _DAILY_SENTIMENT = {
@@ -34,8 +39,17 @@ _DAY_FMT = "%Y-%m-%d"
 
 
 def _day_str(field: str) -> Dict[str, Any]:
-    """field 是 Mongo 字段引用（如 "$published_at"）"""
-    return {"$dateToString": {"format": _DAY_FMT, "date": field}}
+    """field 是 Mongo 字段引用（如 "$published_at"），按北京时间日界分桶"""
+    return {"$dateToString": {"format": _DAY_FMT, "date": field, "timezone": _TZ}}
+
+
+def _local_day_start(days_back: int) -> tuple[datetime, datetime]:
+    """返回 (北京时间 N 天前零点, 等价的朴素 UTC)——前者做标签，后者查库"""
+    local = datetime.now(_CST).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    ) - timedelta(days=days_back)
+    utc = local.astimezone(timezone.utc).replace(tzinfo=None)
+    return local, utc
 
 
 class TrendAnalyzer:
@@ -45,9 +59,7 @@ class TrendAnalyzer:
         self, days: int = 7, category: Optional[str] = None
     ) -> List[TrendData]:
         """逐日趋势序列：3 条聚合（笔记/评论/热词）拼装，与 days 无关"""
-        start = (datetime.utcnow() - timedelta(days=days - 1)).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
+        start_local, start = _local_day_start(days - 1)
 
         notes_by_day = await self._notes_by_day(start, category)
         comments_by_day = await self._comments_by_day(start)
@@ -55,7 +67,7 @@ class TrendAnalyzer:
 
         out: List[TrendData] = []
         for i in range(days):
-            day = start + timedelta(days=i)
+            day = start_local + timedelta(days=i)
             key = day.strftime(_DAY_FMT)
             n = notes_by_day.get(key) or {}
             total = n.get("total_notes", 0)
@@ -76,10 +88,11 @@ class TrendAnalyzer:
     async def analyze_daily_trend(
         self, date: Optional[datetime] = None
     ) -> TrendData:
-        """单日趋势（默认今天）"""
-        day = (date or datetime.utcnow()).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
+        """单日趋势（默认今天，按北京时间日界）"""
+        if date is None:
+            _, day = _local_day_start(0)
+        else:
+            day = date.replace(hour=0, minute=0, second=0, microsecond=0)
         return await self._single_day(day)
 
     async def get_hot_topics(
@@ -87,7 +100,7 @@ class TrendAnalyzer:
     ) -> List[Dict[str, Any]]:
         """近 hours 小时内、按互动量排序的热门笔记"""
         start_time = datetime.utcnow() - timedelta(hours=hours)
-        match: Dict[str, Any] = {"published_at": {"$gte": start_time}}
+        match: Dict[str, Any] = {**ON_TOPIC, "published_at": {"$gte": start_time}}
         if category:
             match["category"] = category
         cursor = (
@@ -112,7 +125,7 @@ class TrendAnalyzer:
     async def _notes_by_day(
         self, start: datetime, category: Optional[str] = None
     ) -> Dict[str, Dict[str, Any]]:
-        match: Dict[str, Any] = {"published_at": {"$gte": start}}
+        match: Dict[str, Any] = {**ON_TOPIC, "published_at": {"$gte": start}}
         if category:
             match["category"] = category
         cursor = mongodb.get_collection("notes").aggregate(
@@ -135,7 +148,7 @@ class TrendAnalyzer:
     async def _top_keywords_by_day(
         self, start: datetime, top: int = 5, category: Optional[str] = None
     ) -> Dict[str, List[str]]:
-        match: Dict[str, Any] = {"published_at": {"$gte": start},
+        match: Dict[str, Any] = {**ON_TOPIC, "published_at": {"$gte": start},
                                  "search_keyword": {"$ne": None}}
         if category:
             match["category"] = category
@@ -162,7 +175,7 @@ class TrendAnalyzer:
     async def _single_day(self, day: datetime) -> TrendData:
         """指定历史单日（analyze_daily_trend 走非今天分支时用）"""
         nxt = day + timedelta(days=1)
-        match = {"published_at": {"$gte": day, "$lt": nxt}}
+        match = {**ON_TOPIC, "published_at": {"$gte": day, "$lt": nxt}}
         notes = mongodb.get_collection("notes")
         rows = await notes.aggregate(
             [{"$match": match}, {"$group": {"_id": None, **_DAILY_SENTIMENT}}]

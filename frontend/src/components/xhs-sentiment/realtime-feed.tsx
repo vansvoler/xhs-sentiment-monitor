@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, FileText, Sparkles } from "lucide-react";
 import type { WsMessage, Note } from "@/types";
+import { fetchNotes } from "@/lib/api";
 import { useWebSocket, type ConnectionStatus } from "@/lib/websocket";
 import { SentimentBadge } from "@/components/ui/badge";
 import { formatRelative } from "@/lib/utils";
@@ -20,9 +21,34 @@ interface RealtimeFeedProps {
 }
 
 const MAX_ITEMS = 20;
+const SEED_COUNT = 10;
+
+// 刷新页面后 WebSocket 流从零开始，先用最近入库的笔记垫底，避免长时间空面板
+function seedItems(notes: Note[]): FeedItem[] {
+  return notes.map((note) => ({
+    id: `seed-${note.note_id}`,
+    type: "new_note",
+    note,
+    timestamp: note.collected_at,
+  }));
+}
 
 export function RealtimeFeed({ onStatusChange }: RealtimeFeedProps) {
   const [items, setItems] = useState<FeedItem[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchNotes(0, SEED_COUNT)
+      .then((notes) => {
+        if (cancelled) return;
+        // 实时推送可能先到，垫底数据只补在已有条目之后
+        setItems((prev) => [...prev, ...seedItems(notes)].slice(0, MAX_ITEMS));
+      })
+      .catch(() => {}); // 垫底失败不影响实时流
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleMessage = useCallback((msg: WsMessage) => {
     const item: FeedItem = {

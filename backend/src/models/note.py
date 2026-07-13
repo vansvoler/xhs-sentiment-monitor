@@ -83,8 +83,10 @@ class Note(BaseModel):
     comments_collected_at: Optional[datetime] = None
     sentiment: Optional[SentimentResult] = None
     keywords: List[str] = []
-    category: Optional[str] = None      # 分类：竞品/话题等
-    xsec_token: Optional[str] = None    # TikHub web 搜索结果带
+    category: Optional[str] = None       # 分类：竞品/话题等
+    search_keyword: Optional[str] = None  # 命中的监控词（采集时的搜索词）
+    relevance: Optional[str] = None      # on_topic / off_topic（LLM 语义判定）
+    xsec_token: Optional[str] = None     # TikHub web 搜索结果带
 
     class Config:
         json_schema_extra = {
@@ -123,10 +125,11 @@ class TrendData(BaseModel):
 
 
 class CompetitorData(BaseModel):
-    """竞品数据"""
+    """竞品数据（含本品牌对照）"""
     name: str
     note_count: int
     avg_sentiment_score: float
     positive_rate: float
     negative_rate: float
     total_mentions: int
+    is_own: bool = False               # 本品牌标记（品牌词组聚合）

@@ -1,37 +1,28 @@
-// 小红书核心接口：笔记 / 评论 / 情感 / 趋势 / 竞品 / 配置
+// 小红书核心接口：笔记 / 情感 / 趋势 / 竞品 / 配置
 import type {
-  Comment,
   CompetitorData,
   HotTopic,
   KeywordConfig,
   Note,
   NotesSummary,
-  SentimentStats,
   TrendDataPoint,
 } from "@/types";
 
 import { BASE, get } from "./client";
 
 export function fetchNotes(
-  skip = 0, limit = 20, category?: string, sentiment?: string,
+  skip = 0, limit = 20, category?: string, sentiment?: string, keyword?: string,
 ): Promise<Note[]> {
   const params = new URLSearchParams({ skip: String(skip), limit: String(limit) });
   if (category) params.set("category", category);
   if (sentiment) params.set("sentiment", sentiment);
-  return get<Note[]>(`/api/notes?${params}`);
+  if (keyword) params.set("keyword", keyword);
+  return get<Note[]>(`/api/notes/?${params}`);
 }
 
 export function fetchNotesSummary(category?: string): Promise<NotesSummary> {
   const params = category ? `?category=${category}` : "";
   return get<NotesSummary>(`/api/notes/stats/summary${params}`);
-}
-
-export function fetchNoteComments(noteId: string, limit = 30): Promise<Comment[]> {
-  return get<Comment[]>(`/api/comments/note/${noteId}?limit=${limit}`);
-}
-
-export function fetchSentimentStats(): Promise<SentimentStats> {
-  return get<SentimentStats>("/api/sentiment/stats");
 }
 
 export function fetchTrendSeries(days = 7, category?: string): Promise<TrendDataPoint[]> {

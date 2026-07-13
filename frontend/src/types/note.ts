@@ -40,6 +40,8 @@ export interface Note {
   sentiment?: SentimentResult;
   keywords: string[];
   category?: string;
+  relevance?: string;                 // on_topic / off_topic
+  xsec_token?: string | null;         // 拼小红书原文链接用
 }
 
 export interface TrendDataPoint {
@@ -60,6 +62,7 @@ export interface CompetitorData {
   positive_rate: number;
   negative_rate: number;
   total_mentions: number;
+  is_own?: boolean;                    // 本品牌（品牌词组聚合）
 }
 
 export interface NotesSummary {

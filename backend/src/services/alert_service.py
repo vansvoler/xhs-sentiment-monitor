@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from src.config import settings
+from src.db.filters import ON_TOPIC
 from src.db.mongodb import mongodb
 from src.models.alert import Alert, AlertLevel, AlertStatus, AlertType
 from src.websocket.manager import websocket_manager
@@ -131,7 +132,7 @@ class AlertService:
             group["negative"] = _neg_count_expr()
         cursor = mongodb.get_collection("notes").aggregate(
             [
-                {"$match": {"search_keyword": {"$ne": None},
+                {"$match": {**ON_TOPIC, "search_keyword": {"$ne": None},
                             "published_at": {"$gte": start, "$lt": end}}},
                 {"$group": group},
             ]

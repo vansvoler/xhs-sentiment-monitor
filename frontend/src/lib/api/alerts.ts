@@ -10,7 +10,7 @@ export function fetchAlerts(
   if (opts.status) params.set("status", opts.status);
   if (opts.level) params.set("level", opts.level);
   params.set("limit", String(opts.limit ?? 50));
-  return get<Alert[]>(`/api/alerts?${params}`);
+  return get<Alert[]>(`/api/alerts/?${params}`);
 }
 
 export function acknowledgeAlert(alertId: string): Promise<{ status: string }> {

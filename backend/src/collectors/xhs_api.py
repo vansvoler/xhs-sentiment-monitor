@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from pymongo import UpdateOne
@@ -19,6 +19,26 @@ from src.config import settings
 from src.db.mongodb import mongodb
 
 logger = logging.getLogger(__name__)
+
+
+def note_matches_keyword(note: Dict[str, Any], keyword: str) -> bool:
+    """标题/正文/标签是否真正包含关键词（过滤搜索的模糊/同音匹配噪声）。
+
+    采集入库过滤与存量清理脚本共用此规则，保证口径一致。
+    """
+    blob = (
+        f"{note.get('title', '')} {note.get('content', '')} "
+        f"{' '.join(note.get('tags') or [])}"
+    ).lower()
+    return keyword.lower() in blob
+
+
+def _published_after(note: Dict[str, Any], cutoff: datetime) -> bool:
+    """发布时间晚于 cutoff（缺失发布时间的保留，不误杀）"""
+    pub = note.get("published_at")
+    if not isinstance(pub, datetime):
+        return True
+    return pub >= cutoff
 
 
 def note_dedup_key(note: Dict[str, Any]) -> str:
@@ -47,32 +67,44 @@ class DataCollector:
     async def collect_and_upsert_by_keyword(
         self, keyword: str, category: str = "brand", max_notes: Optional[int] = None
     ) -> List[str]:
-        """按关键词搜索并入库，返回新增的 note_id 列表"""
-        limit = max_notes or settings.MAX_NOTES_PER_PAGE
-        try:
-            notes = await self.client.search_notes(keyword, page=1)
-        except TikHubError as e:
-            logger.error("关键词 %s 搜索失败: %s", keyword, e)
-            return []
+        """按关键词搜索并入库，返回新增的 note_id 列表。
+
+        抓几页由分类决定（``SEARCH_PAGES_BY_CATEGORY``）；跨页/跨轮重复由
+        ``upsert_notes`` 按 ``dedup_key`` 去重，只刷新不重复入库。
+        """
+        pages = settings.SEARCH_PAGES_BY_CATEGORY.get(category, 1)
+        limit = max_notes or pages * settings.MAX_NOTES_PER_PAGE
+
+        notes: List[Dict[str, Any]] = []
+        for page in range(1, pages + 1):
+            try:
+                batch = await self.client.search_notes(keyword, page=page)
+            except TikHubError as e:
+                logger.error("关键词 %s 第 %d 页搜索失败: %s", keyword, page, e)
+                break
+            if not batch:
+                break  # 没有更多结果，提前停
+            notes.extend(batch)
 
         notes = [n for n in notes if n.get("note_id")]
 
         # 相关性过滤：小红书搜索是模糊/同音匹配，time_descending 会捞进大量沾边噪声
         # （如"澜大"匹配到"兰大"）。只留标题/正文/标签里真正出现关键词的笔记。
         if settings.SEARCH_REQUIRE_KEYWORD_MATCH:
-            kw = keyword.lower()
-            kept = []
-            for n in notes:
-                blob = (
-                    f"{n.get('title', '')} {n.get('content', '')} "
-                    f"{' '.join(n.get('tags', []))}"
-                ).lower()
-                if kw in blob:
-                    kept.append(n)
+            kept = [n for n in notes if note_matches_keyword(n, keyword)]
             dropped = len(notes) - len(kept)
             if dropped:
                 logger.info("关键词 %s 过滤无关笔记 %d 条", keyword, dropped)
             notes = kept
+
+        # 兜底：接口偶尔混排老帖，丢掉发布超过 N 天的（防"一年前的帖子"）
+        if settings.SEARCH_MAX_AGE_DAYS > 0:
+            cutoff = datetime.utcnow() - timedelta(days=settings.SEARCH_MAX_AGE_DAYS)
+            fresh = [n for n in notes if _published_after(n, cutoff)]
+            stale = len(notes) - len(fresh)
+            if stale:
+                logger.info("关键词 %s 过滤超龄老帖 %d 条", keyword, stale)
+            notes = fresh
 
         notes = notes[:limit]
         for n in notes:

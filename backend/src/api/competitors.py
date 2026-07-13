@@ -12,7 +12,7 @@ router = APIRouter()
 @router.get("/compare", response_model=List[CompetitorData])
 async def compare_competitors(
     names: str = Query(None),
-    days: int = Query(30, ge=1, le=90)
+    days: int = Query(30, ge=1, le=365)
 ):
     """
     比较竞品
@@ -28,7 +28,7 @@ async def compare_competitors(
 @router.get("/{name}")
 async def get_competitor_data(
     name: str,
-    days: int = Query(30, ge=1, le=90)
+    days: int = Query(30, ge=1, le=365)
 ):
     """
     获取竞品详情
@@ -43,7 +43,7 @@ async def get_competitor_data(
 @router.get("/{name}/trends")
 async def get_competitor_trends(
     name: str,
-    days: int = Query(30, ge=1, le=90)
+    days: int = Query(30, ge=1, le=365)
 ):
     """
     获取竞品趋势

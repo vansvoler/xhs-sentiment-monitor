@@ -30,19 +30,18 @@ const TYPE_ICON: Record<AlertType, typeof AlertTriangle> = {
 };
 
 type CatFilter = CategoryType | "all";
-const CAT_TABS: { key: CatFilter; label: string }[] = [
-  { key: "all", label: "全部" },
-  { key: "brand", label: "品牌" },
-  { key: "competitor", label: "竞品" },
-  { key: "industry", label: "行业" },
-];
 
 const MAX_ITEMS = 60;
 
-export function AlertPanel({ keywordConfig }: { keywordConfig: KeywordConfig | null }) {
+interface AlertPanelProps {
+  keywordConfig: KeywordConfig | null;
+  // 跟随顶部全局分类 tab；无法归类的告警（如无关键词的评论告警）只在"全部"下展示
+  activeTab: CatFilter;
+}
+
+export function AlertPanel({ keywordConfig, activeTab }: AlertPanelProps) {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [cat, setCat] = useState<CatFilter>("all");
 
   useEffect(() => {
     fetchAlerts({ limit: MAX_ITEMS })
@@ -84,18 +83,9 @@ export function AlertPanel({ keywordConfig }: { keywordConfig: KeywordConfig | n
     [kwCat],
   );
 
-  // 各分类条数（用于 tab 徽标）
-  const counts = useMemo(() => {
-    const c: Record<CatFilter, number> = { all: alerts.length, brand: 0, competitor: 0, industry: 0 };
-    for (const a of alerts) {
-      const k = catOf(a);
-      if (k !== "all") c[k] += 1;
-    }
-    return c;
-  }, [alerts, catOf]);
-
-  const visible = cat === "all" ? alerts : alerts.filter((a) => catOf(a) === cat);
-  const openCount = alerts.filter((a) => a.status === "open").length;
+  const visible =
+    activeTab === "all" ? alerts : alerts.filter((a) => catOf(a) === activeTab);
+  const openCount = visible.filter((a) => a.status === "open").length;
 
   return (
     <div>
@@ -107,25 +97,7 @@ export function AlertPanel({ keywordConfig }: { keywordConfig: KeywordConfig | n
             {openCount}
           </span>
         )}
-        {/* 分类子标签 */}
-        {!loading && alerts.length > 0 && (
-          <div className="ml-auto flex items-center gap-1">
-            {CAT_TABS.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setCat(t.key)}
-                className={`rounded px-2 py-0.5 text-xs transition-colors ${
-                  cat === t.key
-                    ? "bg-[#1e51a2] text-white"
-                    : "text-[#7b8494] hover:bg-[#eef2f8] hover:text-[#1f2a44]"
-                }`}
-              >
-                {t.label}
-                <span className={cat === t.key ? "opacity-80" : "text-[#9aa1ac]"}> {counts[t.key]}</span>
-              </button>
-            ))}
-          </div>
-        )}
+        <span className="ml-auto text-xs text-[#9aa1ac]">跟随顶部分类</span>
       </div>
 
       {loading ? (

@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { RefreshCw, Users } from "lucide-react";
+import { AlertTriangle, RefreshCw, Users } from "lucide-react";
 
 import type {
   CompetitorData,
   HotTopic,
   KeywordConfig,
+  NegativeSummary,
   Note,
   NotesSummary,
   SentimentFilter,
@@ -29,6 +30,7 @@ import {
   fetchCompetitors,
   fetchHotTopics,
   fetchKeywords,
+  fetchNegativeSummary,
   fetchNotes,
   fetchNotesSummary,
   fetchTrendSeries,
@@ -36,14 +38,20 @@ import {
 import { formatNumber } from "@/lib/utils";
 import type { ConnectionStatus } from "@/lib/websocket";
 
-// 趋势时间窗：存量数据多在数月前，默认「近一年」避免空图
+// 趋势时间窗：默认 30 天看近期舆情，长窗用于回溯
 const TREND_WINDOWS = [
+  { days: 7, label: "7天" },
+  { days: 30, label: "30天" },
   { days: 90, label: "90天" },
-  { days: 180, label: "半年" },
   { days: 365, label: "近一年" },
 ];
-// 高互动笔记的回看窗口（小时）——一年，取真正有互动的历史笔记
-const HOT_HOURS = 24 * 365;
+// 竞品对比 / 高互动笔记的时间窗选项
+const WINDOW_OPTIONS = [
+  { days: 7, label: "7天" },
+  { days: 30, label: "30天" },
+  { days: 180, label: "半年" },
+  { days: 365, label: "一年" },
+];
 
 type LoadingState = { overview: boolean; notes: boolean; insights: boolean };
 
@@ -56,53 +64,90 @@ export function XhsSentimentDashboard() {
   });
   const [activeTab, setActiveTab] = useState<ActiveTab>("all");
   const [sentimentFilter, setSentimentFilter] = useState<SentimentFilter>("all");
+  const [keywordFilter, setKeywordFilter] = useState("");
   const [keywordConfig, setKeywordConfig] = useState<KeywordConfig | null>(null);
+  const [competitorDays, setCompetitorDays] = useState(90);
+  const [hotDays, setHotDays] = useState(365);
 
   const [summary, setSummary] = useState<NotesSummary | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [notesHasMore, setNotesHasMore] = useState(false);
   const [trends, setTrends] = useState<TrendDataPoint[]>([]);
   const [topics, setTopics] = useState<HotTopic[]>([]);
   const [competitors, setCompetitors] = useState<CompetitorData[]>([]);
-  const [trendDays, setTrendDays] = useState(365);
+  const [trendDays, setTrendDays] = useState(30);
+  const [negativeSummary, setNegativeSummary] = useState<NegativeSummary | null>(null);
 
-  // 单一加载入口：顶部筛选（tab/情感/时间窗）全页生效
+  // 概览 + 笔记：顶部筛选（tab/情感/关键词/时间窗）驱动
   const load = useCallback(
-    async (tab: ActiveTab, sentiment: SentimentFilter, days: number) => {
+    async (
+      tab: ActiveTab, sentiment: SentimentFilter, days: number, keyword: string,
+    ) => {
       const category = tab === "all" ? undefined : tab;
       const sentimentValue = sentiment === "all" ? undefined : sentiment;
-      setLoading({ overview: true, notes: true, insights: true });
+      setLoading((p) => ({ ...p, overview: true, notes: true }));
 
       const overview = Promise.allSettled([
         fetchNotesSummary(category).then(setSummary),
         fetchTrendSeries(days, category).then(setTrends),
       ]).finally(() => setLoading((p) => ({ ...p, overview: false })));
 
-      const insights = Promise.allSettled([
-        fetchHotTopics(10, HOT_HOURS, category).then(setTopics),
-        fetchCompetitors(90).then(setCompetitors),
-      ]).finally(() => setLoading((p) => ({ ...p, insights: false })));
-
-      const notesReq = fetchNotes(0, 20, category, sentimentValue)
-        .then(setNotes)
+      const notesReq = fetchNotes(0, 20, category, sentimentValue, keyword || undefined)
+        .then((data) => {
+          setNotes(data);
+          setNotesHasMore(data.length === 20);
+        })
         .finally(() => setLoading((p) => ({ ...p, notes: false })));
 
-      await Promise.allSettled([overview, insights, notesReq]);
+      await Promise.allSettled([overview, notesReq]);
+    },
+    [],
+  );
+
+  // 洞察区：竞品对比 / 高互动笔记各带独立时间窗
+  const loadInsights = useCallback(
+    async (tab: ActiveTab, hotD: number, compD: number) => {
+      const category = tab === "all" ? undefined : tab;
+      setLoading((p) => ({ ...p, insights: true }));
+      await Promise.allSettled([
+        fetchHotTopics(10, hotD * 24, category).then(setTopics),
+        fetchCompetitors(compD).then(setCompetitors),
+      ]);
+      setLoading((p) => ({ ...p, insights: false }));
     },
     [],
   );
 
   useEffect(() => {
     fetchKeywords().then(setKeywordConfig).catch(() => {});
+    fetchNegativeSummary().then(setNegativeSummary).catch(() => {});
   }, []);
 
+  const loadMoreNotes = useCallback(async () => {
+    const category = activeTab === "all" ? undefined : activeTab;
+    const sentimentValue = sentimentFilter === "all" ? undefined : sentimentFilter;
+    const more = await fetchNotes(
+      notes.length, 20, category, sentimentValue, keywordFilter || undefined,
+    ).catch(() => []);
+    setNotes((prev) => [...prev, ...more]);
+    setNotesHasMore(more.length === 20);
+  }, [activeTab, sentimentFilter, keywordFilter, notes.length]);
+
   useEffect(() => {
-    const t = setTimeout(() => void load(activeTab, sentimentFilter, trendDays), 0);
+    const t = setTimeout(
+      () => void load(activeTab, sentimentFilter, trendDays, keywordFilter), 0,
+    );
     return () => clearTimeout(t);
-  }, [activeTab, sentimentFilter, trendDays, load]);
+  }, [activeTab, sentimentFilter, trendDays, keywordFilter, load]);
+
+  useEffect(() => {
+    void loadInsights(activeTab, hotDays, competitorDays);
+  }, [activeTab, hotDays, competitorDays, loadInsights]);
 
   const handleTabChange = useCallback((tab: ActiveTab) => {
     setActiveTab(tab);
     setSentimentFilter("all");
+    setKeywordFilter("");
   }, []);
 
   return (
@@ -112,11 +157,21 @@ export function XhsSentimentDashboard() {
       <main className="mx-auto max-w-screen-2xl space-y-4 px-6 py-6">
         {/* 控制条：顶部筛选全页生效 */}
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="space-y-2">
-            <CategoryTabs active={activeTab} onChange={handleTabChange} />
-            <SentimentBar active={sentimentFilter} onChange={setSentimentFilter} />
-          </div>
+          <CategoryTabs active={activeTab} onChange={handleTabChange} />
           <div className="flex items-center gap-1">
+            <Link
+              href="/dashboard/negative"
+              className="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-[#7b8494] transition-colors hover:bg-[#eef2f8] hover:text-[#1f2a44]"
+            >
+              <AlertTriangle size={12} className="text-[#ea5457]" aria-hidden="true" />
+              负面舆情
+              {negativeSummary &&
+                negativeSummary.notes_open + negativeSummary.comments_open > 0 && (
+                <span className="rounded-full bg-[#ea5457] px-1.5 text-[11px] font-semibold text-white">
+                  {negativeSummary.notes_open + negativeSummary.comments_open}
+                </span>
+              )}
+            </Link>
             <Link
               href="/dashboard/kol"
               className="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-[#7b8494] transition-colors hover:bg-[#eef2f8] hover:text-[#1f2a44]"
@@ -125,7 +180,10 @@ export function XhsSentimentDashboard() {
               KOL 挖掘
             </Link>
             <button
-              onClick={() => load(activeTab, sentimentFilter, trendDays)}
+              onClick={() => {
+                void load(activeTab, sentimentFilter, trendDays, keywordFilter);
+                void loadInsights(activeTab, hotDays, competitorDays);
+              }}
               className="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-[#7b8494] transition-colors hover:bg-[#eef2f8] hover:text-[#1f2a44]"
               aria-label="刷新数据"
             >
@@ -147,7 +205,7 @@ export function XhsSentimentDashboard() {
           <CardContent className="space-y-3 pt-4">
             <MetricStrip summary={summary} loading={loading.overview} />
             <div className="border-t border-[#eaeef4] pt-3">
-              <AlertPanel keywordConfig={keywordConfig} />
+              <AlertPanel keywordConfig={keywordConfig} activeTab={activeTab} />
             </div>
           </CardContent>
         </Card>
@@ -188,7 +246,9 @@ export function XhsSentimentDashboard() {
               <CardTitle>情感分布</CardTitle>
             </CardHeader>
             <CardContent>
-              <SentimentDonut distribution={summary?.sentiment_distribution ?? {}} />
+              <SentimentDonut
+                distribution={summary?.sentiment_distribution ?? {}}
+              />
             </CardContent>
           </Card>
         </section>
@@ -198,7 +258,7 @@ export function XhsSentimentDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>竞品对比</CardTitle>
-              <span className="text-xs text-[#7b8494]">近 90 天</span>
+              <WindowTabs value={competitorDays} onChange={setCompetitorDays} />
             </CardHeader>
             <CardContent>
               {loading.insights ? (
@@ -212,7 +272,7 @@ export function XhsSentimentDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>高互动笔记</CardTitle>
-              <span className="text-xs text-[#7b8494]">近一年 · 按互动排序</span>
+              <WindowTabs value={hotDays} onChange={setHotDays} />
             </CardHeader>
             <CardContent>
               <HotTopics topics={topics} loading={loading.insights} />
@@ -225,14 +285,30 @@ export function XhsSentimentDashboard() {
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>最新笔记</CardTitle>
-              <span className="text-xs text-[#7b8494]">跟随顶部筛选</span>
+              {/* 情感筛选只作用于本列表，收进卡片内 */}
+              <SentimentBar active={sentimentFilter} onChange={setSentimentFilter} />
             </CardHeader>
             <CardContent>
               <NotesTable
                 notes={notes}
                 loading={loading.notes}
-                keywords={keywordConfig?.all ?? []}
+                keywords={
+                  // 关键词下拉跟随顶部分类：只列当前分类下的监控词
+                  activeTab === "all"
+                    ? keywordConfig?.all ?? []
+                    : keywordConfig?.[activeTab] ?? []
+                }
+                selectedKw={keywordFilter}
+                onSelectKw={setKeywordFilter}
               />
+              {notesHasMore && !loading.notes && (
+                <button
+                  onClick={loadMoreNotes}
+                  className="mt-3 w-full cursor-pointer rounded-lg border border-[#dce1e9] bg-white py-2 text-xs text-[#5a6474] transition-colors hover:bg-[#eef2f8]"
+                >
+                  加载更多
+                </button>
+              )}
             </CardContent>
           </Card>
 
@@ -246,6 +322,34 @@ export function XhsSentimentDashboard() {
           </Card>
         </section>
       </main>
+    </div>
+  );
+}
+
+// 时间窗切换（竞品对比 / 高互动笔记共用）
+function WindowTabs({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (days: number) => void;
+}) {
+  return (
+    <div className="flex gap-1" role="group" aria-label="时间范围">
+      {WINDOW_OPTIONS.map((w) => (
+        <button
+          key={w.days}
+          onClick={() => onChange(w.days)}
+          className={`cursor-pointer rounded px-2 py-0.5 text-xs transition-colors ${
+            value === w.days
+              ? "bg-[#1e51a2] text-white"
+              : "text-[#7b8494] hover:text-[#5a6474]"
+          }`}
+          aria-pressed={value === w.days}
+        >
+          {w.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -272,7 +376,13 @@ function MetricStrip({
       <Metric label="累计笔记" value={formatNumber(total)} />
       <Metric label="今日新增" value={String(summary.today_notes ?? 0)} />
       <Metric label="正面率" value={`${positiveRate}%`} tone="#16a34a" />
-      <Metric label="负面笔记" value={formatNumber(negative)} tone="#ea5457" />
+      <Link
+        href="/dashboard/negative"
+        className="rounded transition-colors hover:bg-[#eef2f8]"
+        aria-label="打开负面舆情工作台"
+      >
+        <Metric label="负面笔记" value={formatNumber(negative)} tone="#ea5457" />
+      </Link>
     </div>
   );
 }

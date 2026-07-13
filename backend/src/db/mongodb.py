@@ -42,15 +42,22 @@ class MongoDB:
         await notes.create_index("note_id", unique=True)
         await notes.create_index("dedup_key")  # (作者+发布时间) 规范去重键
         await notes.create_index("collected_at")
+        await notes.create_index("published_at")  # 列表/趋势的时间轴排序
         await notes.create_index("comments_collected_at")
         await notes.create_index([("sentiment.label", 1), ("collected_at", -1)])
         await notes.create_index("category")
         await notes.create_index([("category", 1), ("collected_at", -1)])
+        # 负面工作台：影响力排序（粉丝数）
+        await notes.create_index(
+            [("sentiment.label", 1), ("author.fans_count", -1)]
+        )
 
         # comments 唯一 + 关联笔记
         await comments.create_index("comment_id", unique=True)
         await comments.create_index("note_id")
         await comments.create_index("collected_at")
+        # 负面工作台：影响力排序（点赞）
+        await comments.create_index([("sentiment.label", 1), ("likes", -1)])
 
         # alerts 舆情预警
         alerts = self.db["alerts"]

@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
     await keyword_config.seed_if_empty()
 
     # 启动任务调度器
-    start_scheduler()
+    await start_scheduler()
 
     # 启动 WebSocket 心跳
     asyncio.create_task(websocket_manager.heartbeat())

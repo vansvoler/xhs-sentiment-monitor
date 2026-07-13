@@ -2,4 +2,5 @@
 export * from "./note";
 export * from "./alert";
 export * from "./kol";
+export * from "./negative";
 export * from "./ws";

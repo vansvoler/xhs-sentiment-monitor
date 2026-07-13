@@ -2,21 +2,23 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, Download, RefreshCw, Sparkles, X } from "lucide-react";
+import { ArrowLeft, Download, RefreshCw } from "lucide-react";
 
-import type { KolCandidate, KolStatus } from "@/types";
+import type { AccountType, KolCandidate, KolStatus } from "@/types";
 import {
   enrichKol,
   fetchKeywords,
   fetchKolCandidates,
   kolExportUrl,
+  setKolAccountType,
   setKolStatus,
   type KolFilters,
 } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
-import { TagBadge } from "@/components/ui/badge";
-import { formatNumber } from "@/lib/utils";
 
+import { KolRow } from "./kol-row";
+
+// "全部" = 候选 + 名单；已排除的只在自己的 tab 里现身，可随时恢复
 const STATUS_TABS: { key: KolStatus | "all"; label: string }[] = [
   { key: "all", label: "全部" },
   { key: "candidate", label: "候选" },
@@ -24,11 +26,13 @@ const STATUS_TABS: { key: KolStatus | "all"; label: string }[] = [
   { key: "rejected", label: "已排除" },
 ];
 
-function scoreColor(score: number): string {
-  if (score >= 70) return "#16a34a";
-  if (score >= 50) return "#e08a1e";
-  return "#7b8494";
-}
+// 账号身份筛选：默认只看素人（真正的招募池），矩阵号一键可查而非默认隐藏
+const TYPE_TABS: { key: AccountType | "all"; label: string }[] = [
+  { key: "individual", label: "素人" },
+  { key: "competitor_matrix", label: "竞品官号" },
+  { key: "own_matrix", label: "自家官号" },
+  { key: "all", label: "全部" },
+];
 
 export function KolDiscovery() {
   const [rows, setRows] = useState<KolCandidate[]>([]);
@@ -38,20 +42,18 @@ export function KolDiscovery() {
   // 筛选状态
   const [keyword, setKeyword] = useState("");
   const [minEngagement, setMinEngagement] = useState(0);
-  const [onlyPositive, setOnlyPositive] = useState(false);
-  const [hideCompetitor, setHideCompetitor] = useState(true);
+  const [typeTab, setTypeTab] = useState<AccountType | "all">("individual");
   const [statusTab, setStatusTab] = useState<KolStatus | "all">("all");
 
   const filters = useMemo<KolFilters>(
     () => ({
       keyword: keyword || undefined,
       minEngagement: minEngagement || undefined,
-      sentiment: onlyPositive ? "positive" : undefined,
-      hideCompetitor,
+      accountType: typeTab === "all" ? undefined : typeTab,
       status: statusTab === "all" ? undefined : statusTab,
       limit: 100,
     }),
-    [keyword, minEngagement, onlyPositive, hideCompetitor, statusTab],
+    [keyword, minEngagement, typeTab, statusTab],
   );
 
   const load = useCallback(() => {
@@ -70,14 +72,21 @@ export function KolDiscovery() {
     return () => clearTimeout(t);
   }, [load]);
 
+  // 改状态/分类都会让该行落到别的 tab（排除后从默认视图消失），故重拉而非就地更新
   const updateStatus = useCallback(
     async (userId: string, status: KolStatus) => {
-      setRows((prev) =>
-        prev.map((r) => (r.user_id === userId ? { ...r, status } : r)),
-      );
       await setKolStatus(userId, status).catch(() => {});
+      load();
     },
-    [],
+    [load],
+  );
+
+  const updateAccountType = useCallback(
+    async (userId: string, accountType: AccountType | "") => {
+      await setKolAccountType(userId, accountType).catch(() => {});
+      load();
+    },
+    [load],
   );
 
   const doEnrich = useCallback(async (userId: string) => {
@@ -107,7 +116,7 @@ export function KolDiscovery() {
             </Link>
             <h1 className="text-base font-semibold text-[#1f2a44]">KOL 挖掘</h1>
             <span className="text-xs text-[#7b8494]">
-              从话题作者中挖掘可签约的发声者 · 按综合分排序
+              从话题作者中挖掘可签约的发声者 · 按综合分排序 · 点击展开看相关笔记
             </span>
           </div>
           <a
@@ -146,16 +155,21 @@ export function KolDiscovery() {
                 className="w-24 rounded border border-[#dce1e9] bg-[#eef2f8] px-2 py-1 text-xs text-[#1f2a44]"
               />
             </label>
-            <label className="flex cursor-pointer items-center gap-1.5 text-xs text-[#5a6474]">
-              <input type="checkbox" checked={onlyPositive}
-                onChange={(e) => setOnlyPositive(e.target.checked)} />
-              只看正面为主
-            </label>
-            <label className="flex cursor-pointer items-center gap-1.5 text-xs text-[#5a6474]">
-              <input type="checkbox" checked={hideCompetitor}
-                onChange={(e) => setHideCompetitor(e.target.checked)} />
-              隐藏竞品账号
-            </label>
+            <div className="flex items-center gap-1 rounded-lg bg-[#eef2f8] p-0.5">
+              {TYPE_TABS.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setTypeTab(t.key)}
+                  className={`rounded px-2.5 py-1 text-xs transition-colors ${
+                    typeTab === t.key
+                      ? "bg-white font-medium text-[#1f2a44] shadow-sm"
+                      : "text-[#7b8494] hover:text-[#5a6474]"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
             <div className="ml-auto flex items-center gap-1">
               {STATUS_TABS.map((t) => (
                 <button
@@ -190,7 +204,8 @@ export function KolDiscovery() {
                 <thead className="text-[#7b8494]">
                   <tr className="border-b border-[#eaeef4]">
                     <th className="pb-2 font-normal">KOL</th>
-                    <th className="pb-2 font-normal">命中词</th>
+                    <th className="pb-2 font-normal">账号类型</th>
+                    <th className="pb-2 font-normal">关联性 / 命中词</th>
                     <th className="pb-2 text-right font-normal">发文</th>
                     <th className="pb-2 text-right font-normal">篇均互动</th>
                     <th className="pb-2 text-right font-normal">正面率</th>
@@ -206,6 +221,7 @@ export function KolDiscovery() {
                       row={r}
                       onStatus={updateStatus}
                       onEnrich={doEnrich}
+                      onAccountType={updateAccountType}
                     />
                   ))}
                 </tbody>
@@ -215,93 +231,5 @@ export function KolDiscovery() {
         </Card>
       </main>
     </div>
-  );
-}
-
-function KolRow({
-  row,
-  onStatus,
-  onEnrich,
-}: {
-  row: KolCandidate;
-  onStatus: (id: string, s: KolStatus) => void;
-  onEnrich: (id: string) => void;
-}) {
-  const dimmed = row.status === "rejected";
-  return (
-    <tr className={`border-b border-[#eef2f8] ${dimmed ? "opacity-40" : ""}`}>
-      <td className="py-2.5">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-[#1f2a44]">{row.nickname}</span>
-          {row.is_competitor && (
-            <span className="rounded bg-[#e08a1e]/15 px-1.5 py-0.5 text-[12px] text-[#b45309]">
-              竞品
-            </span>
-          )}
-          {row.status === "shortlisted" && (
-            <span className="rounded bg-[#16a34a]/15 px-1.5 py-0.5 text-[12px] text-[#16a34a]">
-              名单
-            </span>
-          )}
-        </div>
-      </td>
-      <td className="py-2.5">
-        <div className="flex flex-wrap gap-1">
-          {row.keywords_hit.map((k) => (
-            <TagBadge key={k}>{k}</TagBadge>
-          ))}
-        </div>
-      </td>
-      <td className="py-2.5 text-right text-[#5a6474]">{row.note_count}</td>
-      <td className="py-2.5 text-right text-[#5a6474]">
-        {formatNumber(Math.round(row.avg_engagement))}
-      </td>
-      <td className="py-2.5 text-right text-[#5a6474]">
-        {(row.positive_rate * 100).toFixed(0)}%
-      </td>
-      <td className="py-2.5 text-right text-[#5a6474]">
-        {row.fans_count != null ? formatNumber(row.fans_count) : "—"}
-      </td>
-      <td className="py-2.5 text-right">
-        <span
-          className="font-mono font-semibold"
-          style={{ color: scoreColor(row.fit_score) }}
-          title={`相关度 ${row.score_breakdown.relevance ?? "-"} · 互动 ${row.score_breakdown.engagement ?? "-"} · 情感 ${row.score_breakdown.sentiment ?? "-"}`}
-        >
-          {row.fit_score.toFixed(0)}
-        </span>
-      </td>
-      <td className="py-2.5">
-        <div className="flex items-center justify-end gap-1.5">
-          {row.fans_count == null && (
-            <button
-              onClick={() => onEnrich(row.user_id)}
-              className="flex items-center gap-1 rounded px-1.5 py-1 text-[12px] text-[#7b8494] hover:bg-[#eef2f8] hover:text-[#6f94cd]"
-              title="补粉丝数（付费）"
-            >
-              <Sparkles size={11} /> 富化
-            </button>
-          )}
-          {row.status !== "shortlisted" && (
-            <button
-              onClick={() => onStatus(row.user_id, "shortlisted")}
-              className="flex items-center gap-1 rounded px-1.5 py-1 text-[12px] text-[#7b8494] hover:bg-[#eef2f8] hover:text-[#16a34a]"
-              title="加入名单"
-            >
-              <Check size={11} /> 名单
-            </button>
-          )}
-          {row.status !== "rejected" && (
-            <button
-              onClick={() => onStatus(row.user_id, "rejected")}
-              className="flex items-center gap-1 rounded px-1.5 py-1 text-[12px] text-[#7b8494] hover:bg-[#eef2f8] hover:text-[#ea5457]"
-              title="排除"
-            >
-              <X size={11} /> 排除
-            </button>
-          )}
-        </div>
-      </td>
-    </tr>
   );
 }

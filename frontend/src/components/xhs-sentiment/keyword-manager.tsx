@@ -52,12 +52,21 @@ interface KeywordGroupProps {
 function KeywordGroup({ category, label, keywords, onMutate }: KeywordGroupProps) {
   const [adding, setAdding] = useState(false);
   const [value, setValue] = useState("");
+  // 两步删除：第一次点 X 进入待确认态（3 秒后自动复原），再点才真删
+  const [confirming, setConfirming] = useState<string | null>(null);
 
   const submit = async () => {
     const v = value.trim();
+    if (!v) {
+      setAdding(false);
+      return;
+    }
+    const ok = window.confirm(
+      `确认新增${label}「${v}」？\n将从下一轮采集开始抓取（消耗 TikHub 调用）。`,
+    );
     setValue("");
     setAdding(false);
-    if (!v) return;
+    if (!ok) return;
     try {
       onMutate(await addKeyword(v, category));
     } catch {
@@ -66,6 +75,12 @@ function KeywordGroup({ category, label, keywords, onMutate }: KeywordGroupProps
   };
 
   const remove = async (kw: string) => {
+    if (confirming !== kw) {
+      setConfirming(kw);
+      setTimeout(() => setConfirming((c) => (c === kw ? null : c)), 3000);
+      return;
+    }
+    setConfirming(null);
     try {
       onMutate(await removeKeyword(kw));
     } catch {
@@ -79,15 +94,23 @@ function KeywordGroup({ category, label, keywords, onMutate }: KeywordGroupProps
       {keywords.map((kw) => (
         <span
           key={kw}
-          className="inline-flex items-center gap-1 rounded border border-[#dce1e9] bg-[#eef2f8] px-1.5 py-0.5 text-xs text-[#5a6474]"
+          className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs transition-colors ${
+            confirming === kw
+              ? "border-[#ea5457] bg-[#ea5457]/10 text-[#ea5457]"
+              : "border-[#dce1e9] bg-[#eef2f8] text-[#5a6474]"
+          }`}
         >
           {kw}
           <button
             onClick={() => remove(kw)}
-            aria-label={`删除 ${kw}`}
-            className="cursor-pointer text-[#9aa1ac] transition-colors hover:text-[#ea5457]"
+            aria-label={confirming === kw ? `确认删除 ${kw}` : `删除 ${kw}`}
+            className={`cursor-pointer transition-colors ${
+              confirming === kw
+                ? "font-medium text-[#ea5457]"
+                : "text-[#9aa1ac] hover:text-[#ea5457]"
+            }`}
           >
-            <X size={12} aria-hidden="true" />
+            {confirming === kw ? "确认删除?" : <X size={12} aria-hidden="true" />}
           </button>
         </span>
       ))}
@@ -96,7 +119,11 @@ function KeywordGroup({ category, label, keywords, onMutate }: KeywordGroupProps
           autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          onBlur={submit}
+          onBlur={() => {
+            // 失焦即取消（不再静默提交），新增只走回车 + 确认
+            setValue("");
+            setAdding(false);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter") submit();
             if (e.key === "Escape") {
@@ -104,8 +131,8 @@ function KeywordGroup({ category, label, keywords, onMutate }: KeywordGroupProps
               setAdding(false);
             }
           }}
-          placeholder="新词"
-          className="w-20 rounded border border-[#1e51a2] bg-white px-1.5 py-0.5 text-xs text-[#1f2a44] outline-none"
+          placeholder="新词，回车确认"
+          className="w-28 rounded border border-[#1e51a2] bg-white px-1.5 py-0.5 text-xs text-[#1f2a44] outline-none"
         />
       ) : (
         <button

@@ -9,10 +9,17 @@ from src.config import settings  # noqa: F401
 
 class SentaService:
     """百度Senta情感分析服务"""
-    
+
+    # Senta/规则无法判语义相关性；调度器据此跳过存量 relevance 回填
+    supports_relevance = False
+
     def __init__(self):
         self.model = None
         self.use_cuda = True
+
+    def batch_analyze_notes(self, texts: List[str], keywords: List[str]) -> list:
+        """与 LLM 服务同构的笔记分析接口：情感照常，相关性恒为 True"""
+        return [(r, True) for r in self.batch_analyze(texts)]
     
     def init_model(self):
         """初始化模型"""

@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import type { TrendDataPoint } from "@/types";
 import { format } from "date-fns";
+import { parseUtc } from "@/lib/utils";
 
 interface TrendLineProps {
   data: TrendDataPoint[];
@@ -28,7 +29,7 @@ export function TrendLine({ data }: TrendLineProps) {
 
   const formatted = data.map((d) => ({
     ...d,
-    date: format(new Date(d.timestamp), "MM/dd"),
+    date: format(parseUtc(d.timestamp), "MM/dd"),
   }));
 
   return (

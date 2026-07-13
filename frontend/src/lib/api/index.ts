@@ -3,3 +3,4 @@ export * from "./client";
 export * from "./xhs";
 export * from "./alerts";
 export * from "./kol";
+export * from "./negative";
