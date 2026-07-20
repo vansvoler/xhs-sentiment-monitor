@@ -5,6 +5,7 @@ import { BASE, get, post } from "./client";
 
 export interface KolFilters {
   keyword?: string;
+  nickname?: string;
   minEngagement?: number;
   accountType?: AccountType;
   status?: KolStatus;
@@ -14,6 +15,7 @@ export interface KolFilters {
 export function fetchKolCandidates(f: KolFilters = {}): Promise<KolCandidate[]> {
   const params = new URLSearchParams();
   if (f.keyword) params.set("keyword", f.keyword);
+  if (f.nickname) params.set("nickname", f.nickname);
   if (f.minEngagement) params.set("min_engagement", String(f.minEngagement));
   if (f.accountType) params.set("account_type", f.accountType);
   if (f.status) params.set("status", f.status);

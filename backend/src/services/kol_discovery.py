@@ -88,6 +88,7 @@ class KolDiscoveryService:
         *,
         min_notes: int = 1,
         keyword: Optional[str] = None,
+        nickname: Optional[str] = None,
         min_engagement: float = 0.0,
         account_type: Optional[str] = None,
         status: Optional[str] = None,
@@ -103,7 +104,7 @@ class KolDiscoveryService:
         ]
         candidates = [
             c for c in candidates
-            if self._passes(c, keyword, min_engagement, account_type, status)
+            if self._passes(c, keyword, nickname, min_engagement, account_type, status)
         ]
         candidates.sort(key=lambda x: x.fit_score, reverse=True)
         return candidates[:limit]
@@ -198,9 +199,10 @@ class KolDiscoveryService:
         return AccountType.INDIVIDUAL
 
     @staticmethod
-    def _passes(
+    def _passes(  # noqa: PLR0913
         c: KolCandidate,
         keyword: Optional[str],
+        nickname: Optional[str],
         min_engagement: float,
         account_type: Optional[str],
         status: Optional[str],
@@ -210,6 +212,8 @@ class KolDiscoveryService:
         if c.status.value not in allowed:
             return False
         if keyword and keyword not in c.keywords_hit:
+            return False
+        if nickname and nickname.lower() not in (c.nickname or "").lower():
             return False
         if c.avg_engagement < min_engagement:
             return False

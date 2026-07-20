@@ -19,6 +19,7 @@ router = APIRouter()
 async def list_candidates(
     min_notes: int = Query(1, ge=1),
     keyword: Optional[str] = None,
+    nickname: Optional[str] = Query(None, description="昵称模糊匹配（不区分大小写）"),
     min_engagement: float = Query(0.0, ge=0),
     account_type: Optional[str] = Query(
         None, description="own_matrix/competitor_matrix/individual"
@@ -30,6 +31,7 @@ async def list_candidates(
     return await kol_discovery.discover(
         min_notes=min_notes,
         keyword=keyword,
+        nickname=nickname,
         min_engagement=min_engagement,
         account_type=account_type,
         status=status,

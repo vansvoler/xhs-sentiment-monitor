@@ -41,19 +41,28 @@ export function KolDiscovery() {
 
   // 筛选状态
   const [keyword, setKeyword] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [nicknameQuery, setNicknameQuery] = useState(""); // 防抖后的实际查询值
   const [minEngagement, setMinEngagement] = useState(0);
   const [typeTab, setTypeTab] = useState<AccountType | "all">("individual");
   const [statusTab, setStatusTab] = useState<KolStatus | "all">("all");
 
+  // 昵称输入防抖：停顿 300ms 才发起查询
+  useEffect(() => {
+    const t = setTimeout(() => setNicknameQuery(nickname.trim()), 300);
+    return () => clearTimeout(t);
+  }, [nickname]);
+
   const filters = useMemo<KolFilters>(
     () => ({
       keyword: keyword || undefined,
+      nickname: nicknameQuery || undefined,
       minEngagement: minEngagement || undefined,
       accountType: typeTab === "all" ? undefined : typeTab,
       status: statusTab === "all" ? undefined : statusTab,
       limit: 100,
     }),
-    [keyword, minEngagement, typeTab, statusTab],
+    [keyword, nicknameQuery, minEngagement, typeTab, statusTab],
   );
 
   const load = useCallback(() => {
@@ -144,6 +153,16 @@ export function KolDiscovery() {
                   <option key={k} value={k}>{k}</option>
                 ))}
               </select>
+            </label>
+            <label className="flex items-center gap-2 text-xs text-[#5a6474]">
+              昵称
+              <input
+                type="search"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="搜索昵称…"
+                className="w-32 rounded border border-[#dce1e9] bg-[#eef2f8] px-2 py-1 text-xs text-[#1f2a44] placeholder:text-[#a3acbc]"
+              />
             </label>
             <label className="flex items-center gap-2 text-xs text-[#5a6474]">
               最低篇均互动
