@@ -129,7 +129,7 @@ class CompetitorData(BaseModel):
     name: str
     note_count: int
     avg_sentiment_score: float
-    positive_rate: float
-    negative_rate: float
+    positive_count: int
+    negative_count: int
     total_mentions: int
     is_own: bool = False               # 本品牌标记（品牌词组聚合）

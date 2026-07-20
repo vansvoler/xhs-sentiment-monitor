@@ -63,8 +63,8 @@ class CompetitorMonitor:
                 name=name,
                 note_count=0,
                 avg_sentiment_score=0.5,
-                positive_rate=0.0,
-                negative_rate=0.0,
+                positive_count=0,
+                negative_count=0,
                 total_mentions=0,
                 is_own=is_own,
             )
@@ -75,8 +75,8 @@ class CompetitorMonitor:
             name=name,
             note_count=count,
             avg_sentiment_score=row["avg_score"],
-            positive_rate=row["positive"] / count,
-            negative_rate=row["negative"] / count,
+            positive_count=row["positive"],
+            negative_count=row["negative"],
             total_mentions=row["total_mentions"],
             is_own=is_own,
         )

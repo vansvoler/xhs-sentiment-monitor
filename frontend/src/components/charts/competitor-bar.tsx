@@ -12,33 +12,36 @@ interface CompetitorViewModel {
   isOwn: boolean;
   noteCount: number;
   totalMentions: number;
+  positiveCount: number;
+  negativeCount: number;
   positivePct: number;
   negativePct: number;
   neutralPct: number;
-  netPct: number;
 }
 
 const OWN_BRAND_NAME = "渊学通";
 
-function toPct(value: number): number {
-  return Math.round(value * 1000) / 10;
+// 条形图分段宽度仍按占比画，文案展示绝对篇数
+function toPct(count: number, total: number): number {
+  return total > 0 ? Math.round((count / total) * 1000) / 10 : 0;
 }
 
 function toRows(data: CompetitorData[]): CompetitorViewModel[] {
   return data
     .map((item) => {
-      const positivePct = toPct(item.positive_rate);
-      const negativePct = toPct(item.negative_rate);
+      const positivePct = toPct(item.positive_count, item.note_count);
+      const negativePct = toPct(item.negative_count, item.note_count);
 
       return {
         isOwn: !!item.is_own,
         name: item.is_own ? OWN_BRAND_NAME : item.name,
         noteCount: item.note_count,
         totalMentions: item.total_mentions,
+        positiveCount: item.positive_count,
+        negativeCount: item.negative_count,
         positivePct,
         negativePct,
         neutralPct: Math.max(0, 100 - positivePct - negativePct),
-        netPct: positivePct - negativePct,
       };
     })
     .sort(
@@ -50,7 +53,7 @@ function SentimentBar({ row }: { row: CompetitorViewModel }) {
   return (
     <div
       className="flex h-2.5 overflow-hidden rounded-full bg-[#eaeef4]"
-      aria-label={`${row.name} 正面 ${row.positivePct}%，负面 ${row.negativePct}%`}
+      aria-label={`${row.name} 正面 ${row.positiveCount} 篇，负面 ${row.negativeCount} 篇`}
     >
       <div className="bg-[#16a34a]" style={{ width: `${row.positivePct}%` }} />
       <div className="bg-[#dce1e9]" style={{ width: `${row.neutralPct}%` }} />
@@ -82,35 +85,18 @@ function RatioCell({ row }: { row: CompetitorViewModel }) {
     <div className="min-w-0 space-y-1.5">
       <SentimentBar row={row} />
       <div className="flex justify-between text-[11px] text-[#7b8494]">
-        <span className="text-[#148a42]">正面 {row.positivePct.toFixed(1)}%</span>
-        <span className="text-[#d13f42]">负面 {row.negativePct.toFixed(1)}%</span>
+        <span className="text-[#148a42]">正面 {formatNumber(row.positiveCount)} 篇</span>
+        <span className="text-[#d13f42]">负面 {formatNumber(row.negativeCount)} 篇</span>
       </div>
-    </div>
-  );
-}
-
-function NetCell({ row }: { row: CompetitorViewModel }) {
-  return (
-    <div className="text-right">
-      <div
-        className={`font-mono text-sm font-semibold ${
-          row.netPct >= 0 ? "text-[#148a42]" : "text-[#d13f42]"
-        }`}
-      >
-        {row.netPct >= 0 ? "+" : ""}
-        {row.netPct.toFixed(1)}
-      </div>
-      <div className="text-[11px] text-[#7b8494]">净情绪</div>
     </div>
   );
 }
 
 function CompetitorRow({ row }: { row: CompetitorViewModel }) {
   return (
-    <li className="grid grid-cols-[104px_1fr_92px] items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[#f4f6fa]">
+    <li className="grid grid-cols-[104px_1fr] items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[#f4f6fa]">
       <BrandCell row={row} />
       <RatioCell row={row} />
-      <NetCell row={row} />
     </li>
   );
 }
@@ -139,7 +125,6 @@ function RowHeader() {
     <div className="flex items-center justify-between px-1 text-[11px] text-[#7b8494]">
       <span>机构</span>
       <span>正面 / 中性 / 负面</span>
-      <span>净情绪</span>
     </div>
   );
 }

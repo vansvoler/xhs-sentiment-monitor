@@ -59,8 +59,8 @@ export interface CompetitorData {
   name: string;
   note_count: number;
   avg_sentiment_score: number;
-  positive_rate: number;
-  negative_rate: number;
+  positive_count: number;
+  negative_count: number;
   total_mentions: number;
   is_own?: boolean;                    // 本品牌（品牌词组聚合）
 }
