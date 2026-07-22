@@ -240,14 +240,21 @@ class XHSAdapter:
         self._http = http
 
     # ---- 搜索 ----
-    async def search_notes(self, keyword: str, page: int = 1) -> List[Dict[str, Any]]:
+    async def search_notes(
+        self, keyword: str, page: int = 1, sort_type: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """
         app_v2/search_notes → data.data.items[]
         endpoint 有"冷启动首次 400"已知问题，调用前由 TikHubClient 做一次重试。
+        sort_type 不传时用全局默认（time_descending）。
         """
         resp = await self._http.get(
             _SEARCH_PATH,
-            {"keyword": keyword, "page": page, "sort_type": settings.SEARCH_SORT_TYPE},
+            {
+                "keyword": keyword,
+                "page": page,
+                "sort_type": sort_type or settings.SEARCH_SORT_TYPE,
+            },
         )
         outer = resp.get("data") or {}
         # app API 结构: resp.data.code/success/data.items
@@ -319,12 +326,14 @@ class TikHubClient:
             self._session = None
             self._adapter = None
 
-    async def search_notes(self, keyword: str, page: int = 1) -> List[Dict[str, Any]]:
+    async def search_notes(
+        self, keyword: str, page: int = 1, sort_type: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """app_v2/search_notes 有冷启动 400 问题，最多重试 3 次，间隔递增"""
         adapter = await self._ensure_ready()
         for attempt in range(3):
             try:
-                return await adapter.search_notes(keyword, page)
+                return await adapter.search_notes(keyword, page, sort_type)
             except TikHubRetriableError as e:
                 if attempt < 2:
                     wait = (attempt + 1) * 2  # 2s, 4s

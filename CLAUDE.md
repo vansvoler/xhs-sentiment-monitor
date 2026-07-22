@@ -96,6 +96,7 @@ APScheduler (collectors/scheduler.py)
 - **TikHub 已下线 `app` / `web` / `web_v2` 全系接口**（2026-07 实测均返回 404），现存只有 `app_v2` / `pgy` / `web_v3`。本项目三个端点一律走 `app_v2`：`search_notes`、`get_user_info`、`get_note_comments`。上游再改接口时，用 `curl https://api.tikhub.dev/openapi.json` 免费拉全量路径清单核对。
 - **搜索接口偶发 400**，`TikHubClient.search_notes` 重试 3 次；持续失败当作"笔记被删/受限"处理。
 - **搜索不保证严格按时间返回**：`sort_type=time_descending` 只是软提示，接口偶尔混排老的高互动帖（同一词前后两次结果可能不同）。故入库时用 `SEARCH_MAX_AGE_DAYS`（默认 180）兜底，丢弃超龄老帖。想抓更早的历史需下调此值或临时置 0。
+- **双排序互补采样**：时间流会漏排序靠后的真实用户帖（求避雷/比价帖），每日采集对品牌/竞品词额外补抓 1 页 `general` 排序（`SEARCH_GENERAL_PAGES_BY_CATEGORY`，行业词不补）。注意：被平台搜索端压制的避雷帖两个排序都捞不到（已实测），这类只能靠人工发现后补录。历史回填用 `backend/temp/backfill_brand.py [关键词] [页数] [排序]`。
 - **端点写死在 `collectors/tikhub.py` 顶部常量**（`_SEARCH_PATH` / `_USER_INFO_PATH` / `_COMMENTS_PATH`），没有 provider 优先级配置。
 
 ## 环境配置

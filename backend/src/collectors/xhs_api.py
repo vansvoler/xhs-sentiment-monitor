@@ -69,22 +69,31 @@ class DataCollector:
     ) -> List[str]:
         """按关键词搜索并入库，返回新增的 note_id 列表。
 
-        抓几页由分类决定（``SEARCH_PAGES_BY_CATEGORY``）；跨页/跨轮重复由
+        按"排序 × 页数"计划抓取：时间流为主（``SEARCH_PAGES_BY_CATEGORY``），
+        general 排序补采样（``SEARCH_GENERAL_PAGES_BY_CATEGORY``）——两个结果集
+        互补，时间流会漏排序靠后的真实用户帖。跨页/跨排序/跨轮重复由
         ``upsert_notes`` 按 ``dedup_key`` 去重，只刷新不重复入库。
         """
-        pages = settings.SEARCH_PAGES_BY_CATEGORY.get(category, 1)
-        limit = max_notes or pages * settings.MAX_NOTES_PER_PAGE
+        time_pages = settings.SEARCH_PAGES_BY_CATEGORY.get(category, 1)
+        general_pages = settings.SEARCH_GENERAL_PAGES_BY_CATEGORY.get(category, 0)
+        plan = [(settings.SEARCH_SORT_TYPE, time_pages), ("general", general_pages)]
+        limit = max_notes or sum(p for _, p in plan) * settings.MAX_NOTES_PER_PAGE
 
         notes: List[Dict[str, Any]] = []
-        for page in range(1, pages + 1):
-            try:
-                batch = await self.client.search_notes(keyword, page=page)
-            except TikHubError as e:
-                logger.error("关键词 %s 第 %d 页搜索失败: %s", keyword, page, e)
-                break
-            if not batch:
-                break  # 没有更多结果，提前停
-            notes.extend(batch)
+        for sort_type, pages in plan:
+            for page in range(1, pages + 1):
+                try:
+                    batch = await self.client.search_notes(
+                        keyword, page=page, sort_type=sort_type
+                    )
+                except TikHubError as e:
+                    logger.error(
+                        "关键词 %s %s 第 %d 页搜索失败: %s", keyword, sort_type, page, e
+                    )
+                    break
+                if not batch:
+                    break  # 该排序没有更多结果，换下一个排序
+                notes.extend(batch)
 
         notes = [n for n in notes if n.get("note_id")]
 
