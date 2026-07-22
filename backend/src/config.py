@@ -39,10 +39,11 @@ class Settings(BaseSettings):
         "industry": 2,
     }
     # general（综合/热门）排序补抓页数：与时间流是两个不同的结果集，互补采样
-    # （时间流会漏排序靠后的真实用户帖，如求避雷/比价帖）。行业词热帖噪声大不补。
+    # （时间流会漏排序靠后的真实用户帖，如求避雷/比价帖）。
+    # 只补品牌词——本品牌口碑不容漏；竞品词时间流够用，行业词热帖噪声大。
     SEARCH_GENERAL_PAGES_BY_CATEGORY: Dict[str, int] = {
         "brand": 1,
-        "competitor": 1,
+        "competitor": 0,
         "industry": 0,
     }
     # 搜索排序：time_descending=最新优先（抓新舆情）；general=综合/热门
